@@ -2,6 +2,7 @@ import torch
 from torch_geometric.datasets import Planetoid
 from torch_geometric.nn import GCNConv
 import torch.nn.functional as F
+from spikingjelly.clock_driven import encoding
 
 
 # 定义GCN模型
@@ -23,14 +24,14 @@ class GCN(torch.nn.Module):
         return x
 
 
-def GCNencoder(dataset, tau):
+def GCNEncoder(dataset, T):
     data = dataset[0]
 
     # 定义GCN模型参数
     input_dim = dataset.num_node_features
     hidden_dim = 16
     # output_dim = dataset.num_classes
-    output_dim = int(tau)
+    output_dim = 32
 
     # 初始化模型
     model = GCN(input_dim, hidden_dim, output_dim)
@@ -39,11 +40,13 @@ def GCNencoder(dataset, tau):
 
     # 获取模型的输出
     output = model(data)
+    print(output.shape)
 
-    # 将输出通过sigmoid函数进行归一化，概率p用于之后的伯努利采样
-    probs = torch.sigmoid(output)
-    # 使用伯努利分布生成脉冲序列
-    spike_seqs = torch.bernoulli(probs).int()
+    encoder = encoding.PoissonEncoder()
+    spike_seqs = []
+    for t in range(T):
+        spike_seqs.append(encoder(output).float())
+    spike_seqs = torch.stack(spike_seqs, dim=0)
     return spike_seqs
 
 
@@ -51,7 +54,7 @@ if __name__ == '__main__':
     # 下载Cora数据集
     dataset = Planetoid(root='./data', name='Cora')
     print(dataset[0].num_nodes)
-    tau = 100.0
-    spike_seqs = GCNencoder(dataset, tau)
+    tau = 100
+    spike_seqs = GCNEncoder(dataset, tau)
     print(spike_seqs)
     print(spike_seqs.size())
