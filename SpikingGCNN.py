@@ -50,17 +50,18 @@ if __name__ == '__main__':
     # 加载数据集
     dataset = Planetoid(root='./data', name='Cora')
     data = dataset[0]
+    tau = 100.0
     # 脉冲序列编码
-    spike_seq = GCNencoder(dataset)
+    spike_seq = GCNencoder(dataset,tau)
     print(spike_seq)
-    print(sum(spike_seq))
+    print(spike_seq.size())
     spike_seq = spike_seq.float()
 
     # input_size是脉冲序列中每个元素的特征数量
     # num_classes是目标分类数量
     input_size = spike_seq.size(1)
     num_classes = dataset.num_classes
-    net = SGCNN(input_size=input_size, num_classes=num_classes, tau=2.0)
+    net = SGCNN(input_size=input_size, num_classes=num_classes, tau=tau)
 
     # 定义损失函数和优化器
     # criterion = nn.CrossEntropyLoss()

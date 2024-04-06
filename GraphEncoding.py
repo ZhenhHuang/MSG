@@ -23,18 +23,19 @@ class GCN(torch.nn.Module):
         return x
 
 
-def GCNencoder(dataset):
+def GCNencoder(dataset, tau):
     data = dataset[0]
 
     # 定义GCN模型参数
     input_dim = dataset.num_node_features
     hidden_dim = 16
-    output_dim = dataset.num_classes
+    # output_dim = dataset.num_classes
+    output_dim = int(tau)
 
     # 初始化模型
     model = GCN(input_dim, hidden_dim, output_dim)
     # 将模型切换到训练模式
-    model.train()
+    # model.train()
 
     # 获取模型的输出
     output = model(data)
@@ -49,4 +50,8 @@ def GCNencoder(dataset):
 if __name__ == '__main__':
     # 下载Cora数据集
     dataset = Planetoid(root='./data', name='Cora')
-    spike_seqs = GCNencoder(dataset)
+    print(dataset[0].num_nodes)
+    tau = 100.0
+    spike_seqs = GCNencoder(dataset, tau)
+    print(spike_seqs)
+    print(spike_seqs.size())
