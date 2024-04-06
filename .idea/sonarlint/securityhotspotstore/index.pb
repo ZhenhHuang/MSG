@@ -1,0 +1,11 @@
+
+8
+mnist.py,8\7\873115993c04c5d7a010df052b807210962910f8
+8
+sgcnn.py,5\c\5c656b01ff50fb19dc62f2c860a0b1494aba0506
+8
+train.py,e\0\e08b0eae9e8651539764474fc69e038ada65d8af
+@
+GraphEncoding.py,d\4\d4085c1207501f15a4042168ce75ca477eec16af
+>
+SpikingGCNN.py,3\d\3d4c7bcf472ae294aa570beb48dc4b7e53e919be
