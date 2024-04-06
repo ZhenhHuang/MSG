@@ -37,7 +37,8 @@ class SGCNN(nn.Module):
         self.input_size = input_size
         self.num_classes = num_classes
         self.layer = nn.Sequential(
-            nn.Flatten(),
+            # nn.Flatten(),
+            # nn.Linear(self.input_size, self.num_classes, bias=False),
             nn.Linear(self.input_size, self.num_classes, bias=False),
             neuron.LIFNode(tau=tau, surrogate_function=surrogate.ATan()),
         )
@@ -52,14 +53,15 @@ if __name__ == '__main__':
     data = dataset[0]
     tau = 100.0
     # 脉冲序列编码
-    spike_seq = GCNencoder(dataset,tau)
-    print(spike_seq)
-    print(spike_seq.size())
-    spike_seq = spike_seq.float()
+    spike_seq = GCNencoder(dataset, tau)
+    print("脉冲编码", spike_seq)
+    print("脉冲编码大小", spike_seq.size())
+    spike_seq = spike_seq.float()  # [N, T]
 
     # input_size是脉冲序列中每个元素的特征数量
     # num_classes是目标分类数量
-    input_size = spike_seq.size(1)
+    input_size = spike_seq.size(0)
+    print("input_size:", input_size)
     num_classes = dataset.num_classes
     net = SGCNN(input_size=input_size, num_classes=num_classes, tau=tau)
 
