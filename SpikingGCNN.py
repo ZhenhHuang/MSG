@@ -24,7 +24,7 @@ import numpy as np
 
 from spikingjelly.activation_based import neuron, encoding, functional, surrogate, layer
 from torch_geometric.datasets import Planetoid
-
+from torch_geometric.nn import GCNConv
 from GraphEncoding import GCNEncoder
 
 
@@ -47,22 +47,19 @@ class SNN(nn.Module):
         return self.layer(x)
 
 # 定义SNN模型
-class SGCNN(nn.Module):
+class SGCNN(nn.Module):   
     def __init__(self, input_size, num_classes, tau):
         super().__init__()
-
-        # 输入尺寸和分类数现在是可配置的
         self.input_size = input_size
         self.num_classes = num_classes
-        self.layer = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(self.input_size, self.num_classes, bias=False),
-            nn.ReLU(),
-            neuron.LIFNode(tau=tau, surrogate_function=surrogate.ATan(),v_threshold=0.5),
-        )
+        self.conv1 = GCNConv(input_size, num_classes)  # 不使用 nn.Sequential
+        self.lif_node = neuron.LIFNode(tau=tau, surrogate_function=surrogate.ATan(),v_threshold=0.5)
 
-    def forward(self, x):
-        return self.layer(x)
+    def forward(self, x, edge_index):
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = self.lif_node(x)
+        return x
 
 if __name__ == '__main__':
     # 加载数据集
@@ -83,11 +80,25 @@ if __name__ == '__main__':
     # print("input_size:", input_size)
     num_classes = dataset.num_classes
    
-    net = SGCNN(input_size=input_size, num_classes=num_classes, tau=tau)
+    # '''
+    # linear interpol
+    # '''
+    # net = SNN(input_size=input_size, num_classes=num_classes, tau=tau)
    
+    # out_spike_seq = []
+    # for t in range(T):
+    #     output = net(spike_seq[t])
+    #     out_spike_seq.append(output)
+    # convolved_output = torch.stack(out_spike_seq, dim=0)
+    # print(convolved_output.shape,convolved_output.sum())
+
+    '''
+    GCN
+    '''
+    net = SGCNN(input_size=input_size,num_classes=num_classes, tau=tau)
     out_spike_seq = []
     for t in range(T):
-        output = net(spike_seq[t])
+        output = net(spike_seq[t],data.edge_index)
         out_spike_seq.append(output)
     convolved_output = torch.stack(out_spike_seq, dim=0)
     print(convolved_output.shape,convolved_output.sum())
