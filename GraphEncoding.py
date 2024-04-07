@@ -29,9 +29,10 @@ def GCNEncoder(dataset, T):
 
     # 定义GCN模型参数
     input_dim = dataset.num_node_features
+    # print("input", input_dim)
     hidden_dim = 16
-    # output_dim = dataset.num_classes
-    output_dim = 32
+    output_dim = dataset.num_classes
+    # output_dim = 32
 
     # 初始化模型
     model = GCN(input_dim, hidden_dim, output_dim)
@@ -40,21 +41,22 @@ def GCNEncoder(dataset, T):
 
     # 获取模型的输出
     output = model(data)
-    print(output.shape)
+    # print("output",output.shape)
 
     encoder = encoding.PoissonEncoder()
     spike_seqs = []
     for t in range(T):
         spike_seqs.append(encoder(output).float())
-    spike_seqs = torch.stack(spike_seqs, dim=0)
+    spike_seqs = torch.stack(spike_seqs, dim=0) #[T,N,D]    
     return spike_seqs
 
 
 if __name__ == '__main__':
     # 下载Cora数据集
     dataset = Planetoid(root='./data', name='Cora')
-    print(dataset[0].num_nodes)
+    # print(dataset[0].num_nodes)
     tau = 100
     spike_seqs = GCNEncoder(dataset, tau)
-    print(spike_seqs)
+    # print(spike_seqs)
+    print(spike_seqs.sum())
     print(spike_seqs.size())
