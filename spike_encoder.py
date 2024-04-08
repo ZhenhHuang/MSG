@@ -18,7 +18,7 @@ class GNNSpikeEncoder(nn.Module):
         t_output = []
         for t in range(self.T):
             xt = self.gnn(x, edge_index)
-            t_output.append(xt)
+            t_output.append(xt) 
         xt = torch.stack(t_output, dim=0)
         spike_output = self.lif(xt)
         return spike_output
