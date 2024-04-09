@@ -28,12 +28,10 @@ parser.add_argument('--save_embeds', type=str, default="./results/embeds.npy")
 parser.add_argument('--log_path', type=str, default="./results/cls_Cora.log")
 
 # Spiking settings
-parser.add_argument('--T', type=int, default=100, help="Time window length")
+parser.add_argument('--T', type=int, default=1, help="Time window length")
 
 # Backbone GNN
 parser.add_argument('--backbone', type=str, default='gcn', choices=['gcn', 'gat', 'sage'])
-parser.add_argument('--hidden_features', type=int, default=32)
-parser.add_argument('--embed_features', type=int, default=32, help='dimensions of graph embedding')
 parser.add_argument('--n_layers', type=int, default=2)
 parser.add_argument('--n_heads', type=int, default=8, help='number of attention heads')
 
@@ -42,13 +40,15 @@ parser.add_argument('--epochs_cls', type=int, default=200)
 parser.add_argument('--drop_cls', type=float, default=0.5)
 parser.add_argument('--drop_edge_cls', type=float, default=0.0)
 parser.add_argument('--hidden_features_cls', type=int, default=32)
+parser.add_argument('--embed_features_cls', type=int, default=32, help='dimensions of graph embedding')
 parser.add_argument('--lr_cls', type=float, default=0.01)
 parser.add_argument('--w_decay_cls', type=float, default=0.0)
-parser.add_argument('--epochs_cls', type=int, default=500)
 parser.add_argument('--patience_cls', type=int, default=30)
 parser.add_argument('--save_path_cls', type=str, default='./checkpoints/cls.pth')
 
 # Link Prediction
+parser.add_argument('--hidden_features_lp', type=int, default=32)
+parser.add_argument('--embed_features_lp', type=int, default=32, help='dimensions of graph embedding')
 parser.add_argument('--drop_lp', type=float, default=0.5)
 parser.add_argument('--drop_edge_lp', type=float, default=0.5)
 parser.add_argument('--lr_lp', type=float, default=0.01)
@@ -66,8 +66,6 @@ parser.add_argument('--gpu', type=int, default=0, help='gpu')
 parser.add_argument('--devices', type=str, default='0,1', help='device ids of multile gpus')
 
 configs = parser.parse_args()
-if len(configs.dimensions) == 1:
-    configs.dimensions = configs.dimensions[0]
 results_dir = f"./results/{configs.version}"
 log_path = f"{results_dir}/{configs.downstream_task}_{configs.backbone}_{configs.dataset}.log"
 configs.log_path = log_path
