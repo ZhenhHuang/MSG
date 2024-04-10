@@ -26,9 +26,9 @@ class SpikeLinkPredictor(nn.Module):
                  embed_neurons, n_heads, dropout):
         super().__init__()
         self.encoder = GNNSpikeEncoder(T, backbone, n_layers, n_neurons, hidden_neurons, embed_neurons, n_heads,
-                                       dropout)
+                                       dropout, v_threshold=0.1)
         self.fc = nn.Linear(embed_neurons, embed_neurons)
-        self.lif = MultiStepLIFNode(detach_reset=True)
+        self.lif = MultiStepLIFNode(detach_reset=True, v_threshold=0.1)
         self.proj = nn.Linear(embed_neurons, embed_neurons)
         self.T = T
 
@@ -36,8 +36,8 @@ class SpikeLinkPredictor(nn.Module):
         x, edge_index = data['features'], data[f'pos_edges_train']
         x = self.encoder(x, edge_index)  # [T, N, D]
         x = self.lif(self.fc(x))  # [T, N, D]
-        # x = self.proj(x)    # [T, N, d]
-        return x.sum(0) / self.T
+        x = self.proj(x)    # [T, N, d]
+        return x.mean(0)
 
 
 class FermiDiracDecoder(nn.Module):

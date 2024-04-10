@@ -7,11 +7,11 @@ from gnn_backbone import choose_backbone
 
 class GNNSpikeEncoder(nn.Module):
     def __init__(self, T, backbone, n_layers, n_neurons, hidden_neurons,
-                 out_neurons, n_heads, dropout):
+                 out_neurons, n_heads, dropout, v_threshold=1.0):
         super(GNNSpikeEncoder, self).__init__()
         self.gnn = choose_backbone(backbone, n_layers, n_neurons, hidden_neurons, out_neurons,
                                    n_heads=n_heads, drop_edge=dropout, drop_node=dropout)
-        self.lif = MultiStepLIFNode(detach_reset=True)
+        self.lif = MultiStepLIFNode(detach_reset=True, v_threshold=v_threshold)
         self.T = T
 
     def forward(self, x, edge_index):

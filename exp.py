@@ -130,10 +130,10 @@ class Exp:
         return best_acc, test_acc, test_weighted_f1, test_macro_f1
 
     def cal_lp_loss(self, embeddings, decoder, pos_edges, neg_edges):
-        pos_scores = decoder(torch.sum((embeddings[pos_edges[0]] - embeddings[pos_edges[1]]) ** 2, -1))
-        neg_scores = decoder(torch.sum((embeddings[neg_edges[0]] - embeddings[neg_edges[1]]) ** 2, -1))
-        loss = F.binary_cross_entropy(pos_scores.clip(0.01, 0.99), torch.ones_like(pos_scores)) + \
-               F.binary_cross_entropy(neg_scores.clip(0.01, 0.99), torch.zeros_like(neg_scores))
+        pos_scores = F.cosine_similarity(embeddings[pos_edges[0]], embeddings[pos_edges[1]], -1)
+        neg_scores = F.cosine_similarity(embeddings[neg_edges[0]], embeddings[neg_edges[1]], -1)
+        loss = F.binary_cross_entropy_with_logits(pos_scores, torch.ones_like(pos_scores)) + \
+               F.binary_cross_entropy_with_logits(neg_scores, torch.zeros_like(neg_scores))
         label = [1] * pos_scores.shape[0] + [0] * neg_scores.shape[0]
         preds = list(pos_scores.detach().cpu().numpy()) + list(neg_scores.detach().cpu().numpy())
         auc, ap = cal_AUC_AP(preds, label)
