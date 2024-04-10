@@ -16,7 +16,7 @@ np.random.seed(seed)
 parser = argparse.ArgumentParser(description='Metric Learning of Spiking GNN')
 
 # Experiment settings
-parser.add_argument('--downstream_task', type=str, default='NC',
+parser.add_argument('--downstream_task', type=str, default='LP',
                     choices=['NC', 'LP'])
 parser.add_argument('--dataset', type=str, default='Cora',
                     choices=['Cora', 'Citeseer', 'Pubmed', 'airport', 'amazon', 'facebook'])
@@ -28,7 +28,7 @@ parser.add_argument('--save_embeds', type=str, default="./results/embeds.npy")
 parser.add_argument('--log_path', type=str, default="./results/cls_Cora.log")
 
 # Spiking settings
-parser.add_argument('--T', type=int, default=1, help="Time window length")
+parser.add_argument('--T', type=int, default=16, help="Time window length")
 
 # Backbone GNN
 parser.add_argument('--backbone', type=str, default='gcn', choices=['gcn', 'gat', 'sage'])
@@ -49,10 +49,10 @@ parser.add_argument('--save_path_cls', type=str, default='./checkpoints/cls.pth'
 # Link Prediction
 parser.add_argument('--hidden_features_lp', type=int, default=32)
 parser.add_argument('--embed_features_lp', type=int, default=32, help='dimensions of graph embedding')
-parser.add_argument('--drop_lp', type=float, default=0.5)
-parser.add_argument('--drop_edge_lp', type=float, default=0.5)
+parser.add_argument('--drop_lp', type=float, default=0.0)
+parser.add_argument('--drop_edge_lp', type=float, default=0.0)
 parser.add_argument('--lr_lp', type=float, default=0.01)
-parser.add_argument('--w_decay_lp', type=float, default=5e-4)
+parser.add_argument('--w_decay_lp', type=float, default=0)
 parser.add_argument('--epochs_lp', type=int, default=200)
 parser.add_argument('--patience_lp', type=int, default=3)
 parser.add_argument('--save_path_lp', type=str, default='./checkpoints/cls.pth')

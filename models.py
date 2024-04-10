@@ -32,12 +32,12 @@ class SpikeLinkPredictor(nn.Module):
         self.proj = nn.Linear(embed_neurons, embed_neurons)
         self.T = T
 
-    def forward(self, x, data):
-        edge_index = data[f'pos_edges_train']
+    def forward(self, data):
+        x, edge_index = data['features'], data[f'pos_edges_train']
         x = self.encoder(x, edge_index)  # [T, N, D]
         x = self.lif(self.fc(x))  # [T, N, D]
-        x = self.proj(x)    # [T, N, d]
-        return x
+        # x = self.proj(x)    # [T, N, d]
+        return x.sum(0) / self.T
 
 
 class FermiDiracDecoder(nn.Module):

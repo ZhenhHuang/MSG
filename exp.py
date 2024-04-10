@@ -63,9 +63,7 @@ class Exp:
                 wf1s.append(test_weighted_f1)
                 mf1s.append(test_macro_f1)
             elif self.configs.downstream_task == 'LP':
-                optimizer_lp = torch.optim.Adam(model.parameters(), lr=self.configs.lr_lp,
-                                                 weight_decay=self.configs.w_decay_lp)
-                _, test_auc, test_ap = self.train_lp(data, model, optimizer_lp, logger)
+                _, test_auc, test_ap = self.train_lp(data, model, logger)
                 logger.info(
                     f"test_auc={test_auc * 100: .2f}%, test_ap={test_ap * 100: .2f}%")
                 aucs.append(test_auc)
@@ -141,7 +139,9 @@ class Exp:
         auc, ap = cal_AUC_AP(preds, label)
         return loss, auc, ap
 
-    def train_lp(self, data, model, optimizer_lp, logger):
+    def train_lp(self, data, model, logger):
+        optimizer_lp = torch.optim.Adam(model.parameters(), lr=self.configs.lr_lp,
+                                        weight_decay=self.configs.w_decay_lp)
         decoder = FermiDiracDecoder(self.configs.r, self.configs.t).to(self.device)
         best_ap = 0
         early_stop_count = 0
@@ -150,17 +150,16 @@ class Exp:
             t = time.time()
             model.train()
             optimizer_lp.zero_grad()
-            neg_motif_train = neg_motifs[0][:, np.random.randint(0, neg_motifs[0].shape[1], pos_motifs[0].shape[1])]
-            embeddings, _ = model(self.features, pos_edges[0], pos_motifs[0], neg_motif_train, Riemann_embeds_getter)
-            neg_edge_train = neg_edges[0][:, np.random.randint(0, neg_edges[0].shape[1], pos_edges[0].shape[1])]
-            loss, auc, ap = self.cal_lp_loss(embeddings, decoder, pos_edges[0], neg_edge_train)
+            embeddings = model(data)
+            neg_edge_train = data["neg_edges_train"][:, np.random.randint(0, data["neg_edges_train"].shape[1], data["pos_edges_train"].shape[1])]
+            loss, auc, ap = self.cal_lp_loss(embeddings, decoder, data["pos_edges_train"], neg_edge_train)
             loss.backward()
             optimizer_lp.step()
             logger.info(
                 f"Epoch {epoch}: train_loss={loss.item()}, train_AUC={auc}, train_AP={ap}, time={time.time() - t}")
             if epoch % self.configs.eval_freq == 0:
                 model.eval()
-                val_loss, auc, ap = self.cal_lp_loss(embeddings, decoder, pos_edges[1], neg_edges[1])
+                val_loss, auc, ap = self.cal_lp_loss(embeddings, decoder, data["pos_edges_val"], data["neg_edges_val"])
                 logger.info(f"Epoch {epoch}: val_loss={val_loss.item()}, val_AUC={auc}, val_AP={ap}")
                 if ap > best_ap:
                     early_stop_count = 0
@@ -170,7 +169,9 @@ class Exp:
                 else:
                     early_stop_count += 1
                 if early_stop_count >= self.configs.patience_lp:
+                    logger.info("Early Stopping")
                     break
+            reset_net(model)
         avg_train_time = (time.time() - time_before_train) / epoch
         time_str = f"Average Time: {avg_train_time} s/epoch"
         logger.info(time_str)
@@ -178,5 +179,5 @@ class Exp:
         with open('time.txt', 'a') as f:
             f.write(time_str)
         f.close()
-        test_loss, test_auc, test_ap = self.cal_lp_loss(embeddings, decoder, pos_edges[2], neg_edges[2])
+        test_loss, test_auc, test_ap = self.cal_lp_loss(embeddings, decoder, data["pos_edges_test"], data["neg_edges_test"])
         return test_loss, test_auc, test_ap
