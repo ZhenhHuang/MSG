@@ -34,7 +34,7 @@ class SinhDivSquare(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         x, = ctx.saved_tensors
-        y = (x * torch.cosh(x) - torch.sinh(x)) / x ** 2
+        y = (x * torch.cosh(x) - 2 * torch.sinh(x)) / x ** 3
         y_stable = torch.ones_like(x) / 6
         return torch.where(x.abs() < EPS[x.dtype], y_stable, y) * grad_output
 
