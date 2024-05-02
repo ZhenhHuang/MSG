@@ -23,9 +23,8 @@ class IFFunction(torch.autograd.Function):
         return output, z_output
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, grad_output, grad_z_output):
         x_seq, v_seq, z_seq = ctx.saved_tensors
-        grad_z_output = grad_output[1]
         manifold = ctx.manifold
         grad_v = grad_z_output @ manifold.jacobian_expmap_v(z_seq, v_seq)
         grad_z = grad_z_output @ manifold.jacobian_expmap_x(z_seq, v_seq)

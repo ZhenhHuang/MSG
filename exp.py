@@ -3,7 +3,8 @@ import numpy as np
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
-from models import SpikeClassifier, SpikeLinkPredictor, FermiDiracDecoder
+from manifolds.lorentz import Lorentz
+from modules.models import SpikeClassifier, SpikeLinkPredictor, FermiDiracDecoder, RiemannianSpikeGNN
 from spikingjelly.clock_driven.functional import reset_net
 from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP
 from utils.data_utils import load_data, mask_edges
@@ -41,15 +42,17 @@ class Exp:
             aps = []
         for exp_iter in range(self.configs.exp_iters):
             logger.info(f"\ntrain iters {exp_iter}")
-            model = SpikeClassifier(T=self.configs.T, backbone=self.configs.backbone, n_layers=self.configs.n_layers,
-                                    n_neurons=data["num_features"], hidden_neurons=self.configs.hidden_features_cls,
-                                    embed_neurons=self.configs.embed_features_cls, num_classes=data["num_classes"],
-                                    n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device) \
-                if self.configs.downstream_task == 'NC' \
-                else SpikeLinkPredictor(T=self.configs.T, backbone=self.configs.backbone, n_layers=self.configs.n_layers,
-                                    n_neurons=data["num_features"], hidden_neurons=self.configs.hidden_features_cls,
-                                    embed_neurons=self.configs.embed_features_cls,
-                                    n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
+            # model = SpikeClassifier(T=self.configs.T, backbone=self.configs.backbone, n_layers=self.configs.n_layers,
+            #                         n_neurons=data["num_features"], hidden_neurons=self.configs.hidden_features_cls,
+            #                         embed_neurons=self.configs.embed_features_cls, num_classes=data["num_classes"],
+            #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device) \
+            #     if self.configs.downstream_task == 'NC' \
+            #     else SpikeLinkPredictor(T=self.configs.T, backbone=self.configs.backbone, n_layers=self.configs.n_layers,
+            #                         n_neurons=data["num_features"], hidden_neurons=self.configs.hidden_features_cls,
+            #                         embed_neurons=self.configs.embed_features_cls,
+            #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
+
+            model = RiemannianSpikeGNN(Lorentz(), T=10, n_layers=2, in_dim=data["num_features"], embed_dim=data["num_classes"]).to(device)
 
             logger.info("--------------------------Training Start-------------------------")
             if self.configs.downstream_task == 'NC':
@@ -119,7 +122,7 @@ class Exp:
                     early_stop_count += 1
                 if early_stop_count >= self.configs.patience_cls:
                     break
-            reset_net(model_cls)
+            # reset_net(model_cls)
         avg_train_time = np.mean(all_times)
         time_str = f"Average Time: {avg_train_time} s/epoch"
         logger.info(time_str)

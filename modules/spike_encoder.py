@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from spikingjelly.clock_driven.neuron import MultiStepLIFNode
 from spikingjelly.clock_driven.encoding import PoissonEncoder
-from gnn_backbone import choose_backbone
+from modules.gnn_backbone import choose_backbone
 
 
 class GNNSpikeEncoder(nn.Module):

@@ -1,7 +1,30 @@
 import torch
 import torch.nn as nn
-from spike_encoder import GNNSpikeEncoder, PoissonSpikeEncoder
+from modules.spike_encoder import GNNSpikeEncoder, PoissonSpikeEncoder
 from spikingjelly.clock_driven.neuron import MultiStepLIFNode
+from modules.layers import RiemannianSGNNLayer, RSEncoderLayer
+from manifolds.lorentz import Lorentz
+
+
+class RiemannianSpikeGNN(nn.Module):
+    def __init__(self, manifold, T, n_layers, in_dim, embed_dim):
+        super(RiemannianSpikeGNN, self).__init__()
+        if isinstance(manifold, Lorentz):
+            embed_dim += 1
+        self.manifold = manifold
+        self.encoder = RSEncoderLayer(manifold, T, in_dim, embed_dim)
+        self.layers = nn.ModuleList([])
+        for _ in range(n_layers):
+            self.layers.append(RiemannianSGNNLayer(manifold, embed_dim))
+
+    def forward(self, data):
+        x, edge_index = data['features'], data['edge_index']
+        x, z = self.encoder(x, edge_index)
+        for layer in self.layers:
+            x, z = layer(x, z, edge_index)
+        if isinstance(self.manifold, Lorentz):
+            z = self.manifold.to_poincare(z)
+        return z
 
 
 class SpikeClassifier(nn.Module):
@@ -51,3 +74,10 @@ class FermiDiracDecoder(nn.Module):
     def forward(self, dist):
         probs = torch.sigmoid((self.r - dist) / self.t)
         return probs
+
+
+if __name__ == '__main__':
+    from torch_geometric.datasets import Planetoid
+    dataset = Planetoid(root='../data', name='Cora')
+    encoder = RiemannianSpikeGNN(Lorentz(), 10, 2, 1433, 32)
+    spike_sequence = encoder(dataset.data.x, dataset.data.edge_index)
