@@ -16,7 +16,7 @@ np.random.seed(seed)
 parser = argparse.ArgumentParser(description='Metric Learning of Spiking GNN')
 
 # Experiment settings
-parser.add_argument('--downstream_task', type=str, default='LP',
+parser.add_argument('--downstream_task', type=str, default='NC',
                     choices=['NC', 'LP'])
 parser.add_argument('--dataset', type=str, default='Cora',
                     choices=['Cora', 'Citeseer', 'Pubmed', 'airport', 'amazon', 'facebook'])

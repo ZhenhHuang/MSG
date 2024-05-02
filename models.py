@@ -10,14 +10,16 @@ class SpikeClassifier(nn.Module):
         super(SpikeClassifier, self).__init__()
         self.encoder = GNNSpikeEncoder(T, backbone, n_layers, n_neurons, hidden_neurons, embed_neurons, n_heads,
                                        dropout)
-        self.fc = nn.Linear(embed_neurons, num_classes)
+        self.fc = nn.Linear(embed_neurons, embed_neurons)
         self.lif = MultiStepLIFNode(detach_reset=True)
+        self.proj = nn.Linear(embed_neurons, num_classes)
         self.T = T
 
     def forward(self, data):
         x, edge_index = data['features'], data['edge_index']
         x = self.encoder(x, edge_index)  # [T, N, D]
         x = self.lif(self.fc(x))    # [T, N, C]
+        x = self.proj(x)
         return x.sum(0) / self.T
 
 

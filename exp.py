@@ -84,7 +84,8 @@ class Exp:
     def cal_cls_loss(self, model, data, mask):
         out = model(data)
         one_hot_labels = F.one_hot(data["labels"][mask], data["num_classes"]).float()
-        loss = F.mse_loss(out[mask], one_hot_labels)
+        # loss = F.mse_loss(out[mask], one_hot_labels)
+        loss = F.cross_entropy(out[mask], data["labels"][mask])
         acc = cal_accuracy(out[mask], data["labels"][mask])
         weighted_f1, macro_f1 = cal_F1(out[mask].detach().cpu(), data["labels"][mask].detach().cpu())
         return loss, acc, weighted_f1, macro_f1
