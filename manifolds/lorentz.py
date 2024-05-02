@@ -1,7 +1,8 @@
 import geoopt
 import torch
 import geoopt.manifolds.lorentz.math as lmath
-from utils import sinh_div
+from utils.math_utils import sinh_div
+
 
 EPS = {torch.float32: 1e-4, torch.float64: 1e-7}
 

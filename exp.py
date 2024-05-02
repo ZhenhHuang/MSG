@@ -5,8 +5,8 @@ import torch.nn as nn
 from torch.optim import Adam
 from models import SpikeClassifier, SpikeLinkPredictor, FermiDiracDecoder
 from spikingjelly.clock_driven.functional import reset_net
-from utils import cal_accuracy, cal_F1, cal_AUC_AP
-from data_factory import load_data, mask_edges
+from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP
+from utils.data_utils import load_data, mask_edges
 from logger import create_logger
 import time
 import os

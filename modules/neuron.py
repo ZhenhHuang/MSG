@@ -27,7 +27,7 @@ class IFFunction(torch.autograd.Function):
         x_seq, v_seq, z_seq = ctx.saved_tensors
         grad_z_output = grad_output[1]
         manifold = ctx.manifold
-        grad_v = gradz_output @ manifold.jacobian_expmap_v(z_seq, v_seq)
+        grad_v = grad_z_output @ manifold.jacobian_expmap_v(z_seq, v_seq)
         grad_z = grad_z_output @ manifold.jacobian_expmap_x(z_seq, v_seq)
         return None, None, grad_v, grad_z, None
 

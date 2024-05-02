@@ -1,6 +1,7 @@
 import geoopt
 import torch
 import geoopt.manifolds.lorentz.math as lmath
+from utils.math_utils import sin_div
 
 
 class Sphere(geoopt.Sphere):
