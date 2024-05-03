@@ -2,10 +2,6 @@ import torch
 import torch.nn as nn
 
 
-def rate_encoding(s):
-    return s.mean(0)
-
-
 class IFFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, manifold, x_seq, v_seq, z_seq, v_threshold=1.0):
