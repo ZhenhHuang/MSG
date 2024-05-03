@@ -163,3 +163,4 @@ checkpoints/
 results/
 *.pt
 *.ipynb
+*.txt
