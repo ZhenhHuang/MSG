@@ -33,6 +33,6 @@ class RiemannianSGNNLayer(nn.Module):
         :return:
         """
         x_seq = self.layer(s_seq, edge_index)
-        y_seq = self.layer.lin(x_seq.mean(0))
+        y_seq = x_seq.mean(0)
         o_seq, z_seq = self.neuron(x_seq, y_seq, z_seq)
         return o_seq, z_seq
