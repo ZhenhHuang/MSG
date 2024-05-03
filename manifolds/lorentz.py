@@ -1,6 +1,5 @@
 import geoopt
 import torch
-import geoopt.manifolds.lorentz.math as lmath
 from utils.math_utils import sinh_div, cosh_div, sinh_div_square
 
 
