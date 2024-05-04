@@ -17,12 +17,18 @@ class RiemannianSpikeGNN(nn.Module):
         for _ in range(n_layers):
             self.layers.append(RiemannianSGNNLayer(manifold, embed_dim))
 
-    def forward(self, data):
-        x, edge_index = data['features'], data['edge_index']
+    def forward(self, data, task):
+        x = data['features']
+        if task == 'nc':
+            edge_index = data['edge_index']
+        elif task == 'lp':
+            edge_index = data['pos_edges_train']
+        else:
+            raise NotImplementedError
         x, z = self.encoder(x, edge_index)
         for layer in self.layers:
             x, z = layer(x, z, edge_index)
-        if isinstance(self.manifold, Lorentz):
+        if isinstance(self.manifold, Lorentz) and task == 'nc':
             z = self.manifold.to_poincare(z)
         return z
 
