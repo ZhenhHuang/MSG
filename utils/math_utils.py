@@ -22,6 +22,14 @@ def tanh(x):
     return x.tanh()
 
 
+def cos(x):
+    return torch.cos(x)
+
+
+def sin(x):
+    return torch.sin(x)
+
+
 class SinhDiv(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x):
@@ -41,42 +49,42 @@ class SinhDiv(torch.autograd.Function):
 sinh_div = SinhDiv.apply
 
 
-class SinhDivSquare(torch.autograd.Function):
+class SinhDivCube(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x):
         ctx.save_for_backward(x)
-        y_stable = torch.zeros_like(x)
-        y = sinh(x) / x ** 2
-        return torch.where(x.abs() < EPS[x.dtype], y_stable, y)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        x, = ctx.saved_tensors
-        y = (x * cosh(x) - 2 * sinh(x)) / x ** 3
         y_stable = torch.ones_like(x) / 6
-        return torch.where(x.abs() < EPS[x.dtype], y_stable, y) * grad_output
-
-
-sinh_div_square = SinhDivSquare.apply
-
-
-class CoshDiv(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, x):
-        ctx.save_for_backward(x)
-        y_stable = torch.zeros_like(x)
-        y = cosh(x) / x
+        y = sinh(x) / x ** 3
         return torch.where(x.abs() < EPS[x.dtype], y_stable, y)
 
     @staticmethod
     def backward(ctx, grad_output):
         x, = ctx.saved_tensors
-        y = (x * sinh(x) - cosh(x)) / x ** 2
-        y_stable = torch.ones_like(x) * 0.5
+        y = (x * cosh(x) - 3 * sinh(x)) / x ** 4
+        y_stable = torch.zeros_like(x)
         return torch.where(x.abs() < EPS[x.dtype], y_stable, y) * grad_output
 
 
-cosh_div = CoshDiv.apply
+sinh_div_cube = SinhDivCube.apply
+
+
+class CoshDivSquare(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        y_stable = torch.ones_like(x) * 0.5
+        y = cosh(x) / x ** 2
+        return torch.where(x.abs() < EPS[x.dtype], y_stable, y)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        x, = ctx.saved_tensors
+        y = (x * sinh(x) - 2 * cosh(x)) / x ** 3
+        y_stable = torch.zeros_like(x)
+        return torch.where(x.abs() < EPS[x.dtype], y_stable, y) * grad_output
+
+
+cosh_div_square = CoshDivSquare.apply
 
 
 class SinDiv(torch.autograd.Function):
@@ -96,3 +104,41 @@ class SinDiv(torch.autograd.Function):
 
 
 sin_div = SinDiv.apply
+
+
+class CosDivSquare(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        y_stable = -torch.ones_like(x) * 0.5
+        y = cos(x) / x ** 2
+        return torch.where(x.abs() < EPS[x.dtype], y_stable, y)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        x, = ctx.saved_tensors
+        y = (-x * sin(x) - 2 * cos(x)) / x ** 3
+        y_stable = torch.zeros_like(x)
+        return torch.where(x.abs() < EPS[x.dtype], y_stable, y) * grad_output
+
+
+cos_div_square = CosDivSquare.apply
+
+
+class SinDivCube(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        y_stable = -torch.ones_like(x) / 6
+        y = sin(x) / x ** 3
+        return torch.where(x.abs() < EPS[x.dtype], y_stable, y)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        x, = ctx.saved_tensors
+        y = (x * cos(x) - 3 * sin(x)) / x ** 4
+        y_stable = torch.ones_like(x) / 24
+        return torch.where(x.abs() < EPS[x.dtype], y_stable, y) * grad_output
+
+
+sin_div_cube = SinDivCube.apply
