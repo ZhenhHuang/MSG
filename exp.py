@@ -52,7 +52,11 @@ class Exp:
             #                         embed_neurons=self.configs.embed_features_cls,
             #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
 
-            model = RiemannianSpikeGNN(Lorentz(), T=10, n_layers=2, in_dim=data["num_features"], embed_dim=data["num_classes"]).to(device)
+            model = RiemannianSpikeGNN(Lorentz(), T=10, n_layers=2, in_dim=data["num_features"],
+                                       embed_dim=data["num_classes"]).to(device) \
+                if self.configs.downstream_task == 'NC' \
+                else RiemannianSpikeGNN(Lorentz(), T=10, n_layers=2, in_dim=data["num_features"],
+                                        embed_dim=32).to(device)
 
             logger.info("--------------------------Training Start-------------------------")
             if self.configs.downstream_task == 'NC':
@@ -85,7 +89,7 @@ class Exp:
             logger.info(f"test AP: {np.mean(aps)}~{np.std(aps)}")
 
     def cal_cls_loss(self, model, data, mask):
-        out = model(data)
+        out = model(data, task='nc')
         one_hot_labels = F.one_hot(data["labels"][mask], data["num_classes"]).float()
         # loss = F.mse_loss(out[mask], one_hot_labels)
         loss = F.cross_entropy(out[mask], data["labels"][mask])
@@ -133,9 +137,10 @@ class Exp:
         test_loss, test_acc, test_weighted_f1, test_macro_f1 = self.cal_cls_loss(model_cls, data, data['test_mask'])
         return best_acc, test_acc, test_weighted_f1, test_macro_f1
 
-    def cal_lp_loss(self, embeddings, decoder, pos_edges, neg_edges):
-        pos_scores = F.cosine_similarity(embeddings[pos_edges[0]], embeddings[pos_edges[1]], -1)
-        neg_scores = F.cosine_similarity(embeddings[neg_edges[0]], embeddings[neg_edges[1]], -1)
+    def cal_lp_loss(self, embeddings, model, pos_edges, neg_edges):
+        pos_scores = model.manifold.inner(embeddings[pos_edges[0]], embeddings[pos_edges[1]], dim=-1)
+        neg_scores = model.manifold.inner(embeddings[neg_edges[0]], embeddings[neg_edges[1]], dim=-1)
+        print(pos_scores.max(), neg_scores.max())
         loss = F.binary_cross_entropy_with_logits(pos_scores, torch.ones_like(pos_scores)) + \
                F.binary_cross_entropy_with_logits(neg_scores, torch.zeros_like(neg_scores))
         label = [1] * pos_scores.shape[0] + [0] * neg_scores.shape[0]
@@ -146,7 +151,7 @@ class Exp:
     def train_lp(self, data, model, logger):
         optimizer_lp = torch.optim.Adam(model.parameters(), lr=self.configs.lr_lp,
                                         weight_decay=self.configs.w_decay_lp)
-        decoder = FermiDiracDecoder(self.configs.r, self.configs.t).to(self.device)
+        # decoder = FermiDiracDecoder(self.configs.r, self.configs.t).to(self.device)
         best_ap = 0
         early_stop_count = 0
         time_before_train = time.time()
@@ -154,16 +159,17 @@ class Exp:
             t = time.time()
             model.train()
             optimizer_lp.zero_grad()
-            embeddings = model(data)
-            neg_edge_train = data["neg_edges_train"][:, np.random.randint(0, data["neg_edges_train"].shape[1], data["pos_edges_train"].shape[1])]
-            loss, auc, ap = self.cal_lp_loss(embeddings, decoder, data["pos_edges_train"], neg_edge_train)
+            embeddings = model(data, task='lp')
+            neg_edge_train = data["neg_edges_train"][:,
+                             np.random.randint(0, data["neg_edges_train"].shape[1], data["pos_edges_train"].shape[1])]
+            loss, auc, ap = self.cal_lp_loss(embeddings, model, data["pos_edges_train"], neg_edge_train)
             loss.backward()
             optimizer_lp.step()
             logger.info(
                 f"Epoch {epoch}: train_loss={loss.item()}, train_AUC={auc}, train_AP={ap}, time={time.time() - t}")
             if epoch % self.configs.eval_freq == 0:
                 model.eval()
-                val_loss, auc, ap = self.cal_lp_loss(embeddings, decoder, data["pos_edges_val"], data["neg_edges_val"])
+                val_loss, auc, ap = self.cal_lp_loss(embeddings, model, data["pos_edges_val"], data["neg_edges_val"])
                 logger.info(f"Epoch {epoch}: val_loss={val_loss.item()}, val_AUC={auc}, val_AP={ap}")
                 if ap > best_ap:
                     early_stop_count = 0
@@ -183,5 +189,6 @@ class Exp:
         with open('time.txt', 'a') as f:
             f.write(time_str)
         f.close()
-        test_loss, test_auc, test_ap = self.cal_lp_loss(embeddings, decoder, data["pos_edges_test"], data["neg_edges_test"])
+        test_loss, test_auc, test_ap = self.cal_lp_loss(embeddings, model, data["pos_edges_test"],
+                                                        data["neg_edges_test"])
         return test_loss, test_auc, test_ap
