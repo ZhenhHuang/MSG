@@ -3,6 +3,7 @@ import numpy as np
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
+from geoopt.optim import RiemannianAdam
 from manifolds.lorentz import Lorentz
 from manifolds.sphere import Sphere
 from manifolds.euclidean import Euclidean
@@ -54,7 +55,7 @@ class Exp:
             #                         embed_neurons=self.configs.embed_features_cls,
             #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
 
-            manifold = Euclidean()
+            manifold = Sphere()
             model = RiemannianSpikeGNN(manifold, T=10, n_layers=2, in_dim=data["num_features"],
                                        embed_dim=data["num_classes"]).to(device) \
                 if self.configs.downstream_task == 'NC' \

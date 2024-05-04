@@ -34,7 +34,9 @@ class RiemannianSGNNLayer(nn.Module):
         :param edge_index: [E, ]
         :return:
         """
+        # print(z_seq.max())
         x_seq = self.drop(self.layer(s_seq, edge_index))
         y_seq = x_seq.mean(0)
         o_seq, z_seq = self.neuron(x_seq, y_seq, z_seq)
+        # print(x_seq.max(), self.manifold.norm(y_seq).abs().max(), z_seq.max())
         return o_seq, z_seq
