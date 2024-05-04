@@ -1,6 +1,6 @@
 import geoopt
 import torch
-from utils.math_utils import sinh_div, cosh_div, sinh_div_square
+from utils.math_utils import sinh_div, cosh_div_square, sinh_div_cube
 
 
 EPS = {torch.float32: 1e-4, torch.float64: 1e-7}
@@ -39,12 +39,12 @@ class Lorentz(geoopt.Lorentz):
         return z
 
     def jacobian_expmap_v(self, x, v):
-        u = self.norm(v, keepdim=True)  # (N, 1)
+        v_norm = self.norm(v, keepdim=True)  # (N, 1)
         v_hat = v.clone()
         v_hat.narrow(-1, 0, 1).mul_(-1)  # (N, D)
         eye = torch.eye(x.shape[1], device=x.device).unsqueeze(0)
-        first_term = sinh_div(u).unsqueeze(-1) * (eye + torch.einsum("ij, ik->ijk", x, v_hat))
-        second_term = (cosh_div(u) - sinh_div_square(u)).unsqueeze(-1) * torch.einsum("ij, ik->ijk", v, v_hat)
+        first_term = sinh_div(v_norm).unsqueeze(-1) * (eye + torch.einsum("ij, ik->ijk", x, v_hat))
+        second_term = (cosh_div_square(v_norm) - sinh_div_cube(v_norm)).unsqueeze(-1) * torch.einsum("ij, ik->ijk", v, v_hat)
         return first_term + second_term
 
     def jacobian_expmap_x(self, x, v):
