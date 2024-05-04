@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from manifolds.lorentz import Lorentz
 from manifolds.sphere import Sphere
-from modules.models import SpikeClassifier, SpikeLinkPredictor, FermiDiracDecoder, RiemannianSpikeGNN
+from modules.models import FermiDiracDecoder, RiemannianSpikeGNN
 from spikingjelly.clock_driven.functional import reset_net
 from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP
 from utils.data_utils import load_data, mask_edges
@@ -140,9 +140,9 @@ class Exp:
         return best_acc, test_acc, test_weighted_f1, test_macro_f1
 
     def cal_lp_loss(self, embeddings, model, pos_edges, neg_edges):
-        pos_scores = model.manifold.inner(embeddings[pos_edges[0]], embeddings[pos_edges[1]], dim=-1)
-        neg_scores = model.manifold.inner(embeddings[neg_edges[0]], embeddings[neg_edges[1]], dim=-1)
-        print(pos_scores.max(), neg_scores.max())
+        pos_scores = model.manifold.inner(embeddings[pos_edges[0]], embeddings[pos_edges[1]])
+        neg_scores = model.manifold.inner(embeddings[neg_edges[0]], embeddings[neg_edges[1]])
+        # print(pos_scores.max(), neg_scores.max())
         loss = F.binary_cross_entropy_with_logits(pos_scores, torch.ones_like(pos_scores)) + \
                F.binary_cross_entropy_with_logits(neg_scores, torch.zeros_like(neg_scores))
         label = [1] * pos_scores.shape[0] + [0] * neg_scores.shape[0]
