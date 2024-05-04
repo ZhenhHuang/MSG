@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
 from manifolds.lorentz import Lorentz
+from manifolds.sphere import Sphere
 from modules.models import SpikeClassifier, SpikeLinkPredictor, FermiDiracDecoder, RiemannianSpikeGNN
 from spikingjelly.clock_driven.functional import reset_net
 from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP
@@ -52,10 +53,11 @@ class Exp:
             #                         embed_neurons=self.configs.embed_features_cls,
             #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
 
-            model = RiemannianSpikeGNN(Lorentz(), T=10, n_layers=2, in_dim=data["num_features"],
+            manifold = Sphere()
+            model = RiemannianSpikeGNN(manifold, T=10, n_layers=2, in_dim=data["num_features"],
                                        embed_dim=data["num_classes"]).to(device) \
                 if self.configs.downstream_task == 'NC' \
-                else RiemannianSpikeGNN(Lorentz(), T=10, n_layers=2, in_dim=data["num_features"],
+                else RiemannianSpikeGNN(manifold, T=10, n_layers=2, in_dim=data["num_features"],
                                         embed_dim=32).to(device)
 
             logger.info("--------------------------Training Start-------------------------")
