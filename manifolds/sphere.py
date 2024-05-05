@@ -30,12 +30,27 @@ class Sphere(geoopt.Sphere):
         return self.expmap(pole, u)
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        # u = self.proju(x, u)
+        u = self.proju(x, u)
         norm_u = u.norm(dim=-1, keepdim=True)
         exp = x * torch.cos(norm_u) + u * sin_div(norm_u)
         retr = self.projx(x + u)
         cond = norm_u > EPS[norm_u.dtype]
         return torch.where(cond, exp, retr)
+
+    def logmap0(self, y: torch.Tensor):
+        x = self.origin(y.shape, dtype=y.dtype, device=y.device)
+        u = self.proju(x, y - x)
+        dist = self.dist(x, y, keepdim=True)
+        cond = dist.gt(EPS[x.dtype])
+        result = torch.where(
+            cond, u * dist / u.norm(dim=-1, keepdim=True).clamp_min(EPS[x.dtype]), u
+        )
+        return result
+
+    def proju0(self, u: torch.Tensor) -> torch.Tensor:
+        x = self.origin(u.shape, dtype=u.dtype, device=u.device)
+        u = u - (x * u).sum(dim=-1, keepdim=True) * x
+        return self._project_on_subspace(u)
 
     def norm(self, u: torch.Tensor, x: torch.Tensor = None, *, keepdim=False) -> torch.Tensor:
         return torch.norm(u, dim=-1, keepdim=keepdim)
@@ -53,3 +68,15 @@ class Sphere(geoopt.Sphere):
         u = torch.sum(v ** 2, dim=-1, keepdim=True)  # (N, 1)
         eye = torch.eye(x.shape[1], device=x.device).unsqueeze(0)
         return torch.cos(u).unsqueeze(-1) * eye
+
+
+if __name__ == '__main__':
+    from torch.autograd.functional import jacobian
+    def func(x, v):
+        m = Sphere()
+        return m.expmap(x, v)
+    x, v = torch.tensor([[2., 1., 1., 1.]]), torch.tensor([[1., 0., 0., 2.]])
+    j = jacobian(func, (x, v))[1]
+    jv = Sphere().jacobian_expmap_v(x, v)
+    print(j, j.shape)
+    print(jv, jv.shape)

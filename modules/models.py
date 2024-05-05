@@ -7,7 +7,7 @@ from manifolds.lorentz import Lorentz
 
 
 class RiemannianSpikeGNN(nn.Module):
-    def __init__(self, manifold, T, n_layers, in_dim, embed_dim):
+    def __init__(self, manifold, T, n_layers, in_dim, embed_dim, n_classes):
         super(RiemannianSpikeGNN, self).__init__()
         if isinstance(manifold, Lorentz):
             embed_dim += 1
@@ -16,6 +16,7 @@ class RiemannianSpikeGNN(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(n_layers):
             self.layers.append(RiemannianSGNNLayer(manifold, embed_dim))
+        self.fc = nn.Linear(embed_dim, n_classes)
 
     def forward(self, data, task):
         x = data['features']
@@ -30,6 +31,9 @@ class RiemannianSpikeGNN(nn.Module):
             x, z = layer(x, z, edge_index)
         if isinstance(self.manifold, Lorentz) and task == 'nc':
             z = self.manifold.to_poincare(z)
+        if task == 'nc':
+            z = self.manifold.proju0(self.manifold.logmap0(z))
+            z = self.fc(z)
         return z
 
 

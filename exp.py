@@ -55,12 +55,12 @@ class Exp:
             #                         embed_neurons=self.configs.embed_features_cls,
             #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
 
-            manifold = Euclidean()
-            model = RiemannianSpikeGNN(manifold, T=10, n_layers=2, in_dim=data["num_features"],
-                                       embed_dim=data["num_classes"]).to(device) \
+            manifold = Sphere()
+            model = RiemannianSpikeGNN(manifold, T=10, n_layers=2, in_dim=data["num_features"], embed_dim=32,
+                                       n_classes=data["num_classes"]).to(device) \
                 if self.configs.downstream_task == 'NC' \
                 else RiemannianSpikeGNN(manifold, T=10, n_layers=2, in_dim=data["num_features"],
-                                        embed_dim=32).to(device)
+                                        embed_dim=32, n_classes=data["num_classes"]).to(device)
 
             logger.info("--------------------------Training Start-------------------------")
             if self.configs.downstream_task == 'NC':
@@ -115,6 +115,8 @@ class Exp:
             optimizer_cls.zero_grad()
             loss, acc, weighted_f1, macro_f1 = self.cal_cls_loss(model_cls, data, data["train_mask"])
             loss.backward()
+            for param in list(model_cls.parameters()):
+                torch.nn.utils.clip_grad_norm_(param, 1.)
             optimizer_cls.step()
             logger.info(f"Epoch {epoch}: train_loss={loss.item()}, train_accuracy={acc}, time={time.time() - now_time}")
             all_times.append(time.time() - now_time)
