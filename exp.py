@@ -55,7 +55,7 @@ class Exp:
             #                         embed_neurons=self.configs.embed_features_cls,
             #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
 
-            manifold = Sphere()
+            manifold = Euclidean()
             model = RiemannianSpikeGNN(manifold, T=10, n_layers=2, in_dim=data["num_features"],
                                        embed_dim=data["num_classes"]).to(device) \
                 if self.configs.downstream_task == 'NC' \
@@ -94,7 +94,7 @@ class Exp:
 
     def cal_cls_loss(self, model, data, mask):
         out = model(data, task='nc')
-        one_hot_labels = F.one_hot(data["labels"][mask], data["num_classes"]).float()
+        # one_hot_labels = F.one_hot(data["labels"][mask], data["num_classes"]).float()
         # loss = F.mse_loss(out[mask], one_hot_labels)
         loss = F.cross_entropy(out[mask], data["labels"][mask])
         acc = cal_accuracy(out[mask], data["labels"][mask])

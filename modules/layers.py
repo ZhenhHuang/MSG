@@ -5,18 +5,20 @@ from modules.neuron import RiemannianIFNode
 
 
 class RSEncoderLayer(nn.Module):
-    def __init__(self, manifold, T, in_dim, out_dim):
+    def __init__(self, manifold, T, in_dim, out_dim, v_threshold=1.):
         super(RSEncoderLayer, self).__init__()
         self.manifold = manifold
         self.fc = GCNConv(in_dim, out_dim)
         self.T = T
         self.drop = nn.Dropout(0.0)
+        self.neuron = RiemannianIFNode(manifold, v_threshold)
 
     def forward(self, x, edge_index):
         x = self.drop(self.fc(x, edge_index))
-        z = self.manifold.expmap0(x)
-        x = x.unsqueeze(0).repeat(self.T, 1, 1)
-        return x, z
+        z = self.manifold.origin(x.shape, device=x.device, dtype=x.dtype)
+        x_seq = x.unsqueeze(0).repeat(self.T, 1, 1)
+        o_seq, z_seq = self.neuron(x_seq, x, z)
+        return o_seq, z_seq
 
 
 class RiemannianSGNNLayer(nn.Module):
