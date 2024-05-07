@@ -8,6 +8,7 @@ from torch_geometric.data import InMemoryDataset
 from torch_geometric.datasets import Planetoid, WikipediaNetwork, Actor, GemsecDeezer, WikiCS, FacebookPagePage, Amazon
 from torch_geometric.utils import to_networkx
 from torch_geometric.utils import negative_sampling
+from torch_geometric.transforms import RandomNodeSplit
 # from ogb.nodeproppred import PygNodePropPredDataset
 from sklearn.datasets import load_wine, load_breast_cancer, load_digits, fetch_20newsgroups
 from sklearn.feature_extraction.text import CountVectorizer
@@ -30,7 +31,7 @@ def get_mask(idx, length):
     return mask
 
 
-def load_data(root: str, data_name: str, split='public', **kwargs):
+def load_data(root: str, data_name: str, split='public', num_val=0.1, num_test=0.8):
     if data_name in ['Cora', 'Citeseer', 'Pubmed']:
         dataset = Planetoid(root=root, name=data_name, split=split)
         train_mask, val_mask, test_mask = dataset.data.train_mask, dataset.data.val_mask, dataset.data.test_mask
@@ -58,7 +59,8 @@ def load_data(root: str, data_name: str, split='public', **kwargs):
         train_mask, val_mask, test_mask = dataset.data.mask
     elif data_name in ["computers", "photo"]:
         dataset = Amazon(root, name=data_name)
-        train_mask, val_mask, test_mask = dataset.data.mask
+        dataset.data = RandomNodeSplit(num_val=num_val, num_test=num_test)(dataset[0])
+        train_mask, val_mask, test_mask = dataset.data.train_mask, dataset.data.val_mask, dataset.data.test_mask
     elif data_name == "wikics":
         dataset = WikiCS(root=f"{root}/wikics")
         train_mask, val_mask, test_mask = dataset.data.train_mask, dataset.data.val_mask, dataset.data.test_mask

@@ -56,7 +56,7 @@ class Exp:
             #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
 
             manifold = Euclidean()
-            model = RiemannianSpikeGNN(manifold, T=20, n_layers=2, in_dim=data["num_features"], embed_dim=32,
+            model = RiemannianSpikeGNN(manifold, T=20, n_layers=2, in_dim=data["num_features"], embed_dim=64,
                                        n_classes=data["num_classes"], step_size=1.).to(device)
             flops, params = calc_params(model, data, self.configs.downstream_task.lower())
             logger.info(f"flops: {flops}, params: {params}")
