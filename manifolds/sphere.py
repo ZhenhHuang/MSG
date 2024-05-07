@@ -30,7 +30,6 @@ class Sphere(geoopt.Sphere):
         return self.expmap(pole, u)
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        u = self.proju(x, u)
         norm_u = u.norm(dim=-1, keepdim=True)
         exp = x * torch.cos(norm_u) + u * sin_div(norm_u)
         retr = self.projx(x + u)
@@ -65,7 +64,7 @@ class Sphere(geoopt.Sphere):
         return first_term + second_term
 
     def jacobian_expmap_x(self, x, v):
-        u = torch.sum(v ** 2, dim=-1, keepdim=True)  # (N, 1)
+        u = torch.sum(v ** 2, dim=-1, keepdim=True).clamp(min=1e-4).sqrt()  # (N, 1)
         eye = torch.eye(x.shape[1], device=x.device).unsqueeze(0)
         return torch.cos(u).unsqueeze(-1) * eye
 
