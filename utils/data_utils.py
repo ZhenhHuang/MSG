@@ -5,7 +5,7 @@ import networkx as nx
 import numpy as np
 import torch_geometric.data
 from torch_geometric.data import InMemoryDataset
-from torch_geometric.datasets import Planetoid, WikipediaNetwork, Actor, GemsecDeezer, WikiCS, FacebookPagePage
+from torch_geometric.datasets import Planetoid, WikipediaNetwork, Actor, GemsecDeezer, WikiCS, FacebookPagePage, Amazon
 from torch_geometric.utils import to_networkx
 from torch_geometric.utils import negative_sampling
 # from ogb.nodeproppred import PygNodePropPredDataset
@@ -56,8 +56,8 @@ def load_data(root: str, data_name: str, split='public', **kwargs):
     elif data_name == "airport":
         dataset = Airport(root)
         train_mask, val_mask, test_mask = dataset.data.mask
-    elif data_name == "amazon":
-        dataset = Amazon(root)
+    elif data_name in ["computers", "photo"]:
+        dataset = Amazon(root, name=data_name)
         train_mask, val_mask, test_mask = dataset.data.mask
     elif data_name == "wikics":
         dataset = WikiCS(root=f"{root}/wikics")
@@ -69,14 +69,6 @@ def load_data(root: str, data_name: str, split='public', **kwargs):
         train_mask = index[: int(n * 0.7)]
         val_mask = index[int(n * 0.7): int(n * 0.8)]
         test_mask = index[int(n * 0.8):]
-    # elif data_name in ["deezer_hu", "deezer_hr", "deezer_ro"]:
-    #     if data_name == "deezer_hu":
-    #         dataset = GemsecDeezer(root, "HU")
-    #     elif data_name == "deezer_hr":
-    #         dataset = GemsecDeezer(root, "HR")
-    #     elif data_name == "deezer_ro":
-    #         dataset = GemsecDeezer(root, "RO")
-    #     train_mask, val_mask, test_mask = dataset.data.mask
     else:
         raise NotImplementedError
 
@@ -171,53 +163,6 @@ class Airport(InMemoryDataset):
         labels = bin_feat(labels, bins=[7.0 / 7, 8.0 / 7, 9.0 / 7])
 
         idx_val, idx_test, idx_train = split_data(labels, val_prop, test_prop, random.seed(3047))
-        mask = (idx_train, idx_val, idx_test)
-
-        self.data = torch_geometric.data.Data(x=features,
-                                              edge_index=torch.tensor(edge_index),
-                                              y=torch.tensor(labels),
-                                              mask=mask)
-
-        @property
-        def num_features(self) -> int:
-            return self.data.x.shape[-1]
-
-        @property
-        def raw_file_names(self):
-            pass
-
-        @property
-        def processed_file_names(self):
-            pass
-
-        def download(self):
-            pass
-
-        def process(self):
-            pass
-
-
-class Amazon(InMemoryDataset):
-    def __init__(self, root):
-        super(Amazon, self).__init__()
-        names1 = ['adj_matrix.npz', 'attr_matrix.npz']
-        names2 = ['label_matrix.npy', 'train_mask.npy', 'val_mask.npy', 'test_mask.npy']
-        objects = []
-        for tmp_name in names1:
-            tmp_path = f"{root}/amazon/amazon.{tmp_name}"
-            objects.append(sp.load_npz(tmp_path))
-        for tmp_name in names2:
-            tmp_path = f"{root}/amazon/amazon.{tmp_name}"
-            objects.append(np.load(tmp_path))
-        adj, features, label_matrix, train_mask, val_mask, test_mask = tuple(objects)
-        row, col = np.nonzero(adj)
-        edge_index = np.concatenate([row[None], col[None]], axis=0)
-        features = torch.tensor(features.toarray()).float()
-        labels = np.argmax(label_matrix, 1)
-        arr = np.arange(len(train_mask))
-        idx_train = torch.tensor(arr[train_mask]).long()
-        idx_val = torch.tensor(arr[val_mask]).long()
-        idx_test = torch.tensor(arr[test_mask]).long()
         mask = (idx_train, idx_val, idx_test)
 
         self.data = torch_geometric.data.Data(x=features,

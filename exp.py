@@ -9,7 +9,7 @@ from manifolds.sphere import Sphere
 from manifolds.euclidean import Euclidean
 from modules.models import FermiDiracDecoder, RiemannianSpikeGNN
 from spikingjelly.clock_driven.functional import reset_net
-from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP
+from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP, calc_params
 from utils.data_utils import load_data, mask_edges
 from logger import create_logger
 import time
@@ -56,8 +56,10 @@ class Exp:
             #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
 
             manifold = Euclidean()
-            model = RiemannianSpikeGNN(manifold, T=10, n_layers=2, in_dim=data["num_features"], embed_dim=32,
+            model = RiemannianSpikeGNN(manifold, T=20, n_layers=2, in_dim=data["num_features"], embed_dim=32,
                                        n_classes=data["num_classes"], step_size=1.).to(device)
+            flops, params = calc_params(model, data, self.configs.downstream_task.lower())
+            logger.info(f"flops: {flops}, params: {params}")
 
             logger.info("--------------------------Training Start-------------------------")
             if self.configs.downstream_task == 'NC':

@@ -18,9 +18,9 @@ parser = argparse.ArgumentParser(description='Metric Learning of Spiking GNN')
 # Experiment settings
 parser.add_argument('--downstream_task', type=str, default='NC',
                     choices=['NC', 'LP'])
-parser.add_argument('--dataset', type=str, default='Cora',
-                    choices=['Cora', 'Citeseer', 'Pubmed', 'airport', 'amazon', 'facebook'])
-parser.add_argument('--root_path', type=str, default='./data')
+parser.add_argument('--dataset', type=str, default='computers',
+                    choices=['Cora', 'Citeseer', 'Pubmed', 'airport', 'computers', 'photo'])
+parser.add_argument('--root_path', type=str, default='D:\datasets\Graphs')
 parser.add_argument('--eval_freq', type=int, default=5)
 parser.add_argument('--exp_iters', type=int, default=5)
 parser.add_argument('--version', type=str, default="run")
