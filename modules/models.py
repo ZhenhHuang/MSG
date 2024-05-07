@@ -4,6 +4,7 @@ from modules.spike_encoder import GNNSpikeEncoder, PoissonSpikeEncoder
 from spikingjelly.clock_driven.neuron import MultiStepLIFNode
 from modules.layers import RiemannianSGNNLayer, RSEncoderLayer
 from manifolds.lorentz import Lorentz
+from manifolds.euclidean import Euclidean
 
 
 class RiemannianSpikeGNN(nn.Module):
@@ -29,11 +30,9 @@ class RiemannianSpikeGNN(nn.Module):
         x, z = self.encoder(x, edge_index)
         for layer in self.layers:
             x, z = layer(x, z, edge_index)
-        if isinstance(self.manifold, Lorentz) and task == 'nc':
-            z = self.manifold.to_poincare(z)
-        if task == 'nc':
+        if task == 'nc' and not isinstance(self.manifold, Euclidean):
             z = self.manifold.proju0(self.manifold.logmap0(z))
-            z = self.fc(z)
+        z = self.fc(z)
         return z
 
 
