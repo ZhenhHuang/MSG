@@ -142,3 +142,23 @@ class SinDivCube(torch.autograd.Function):
 
 
 sin_div_cube = SinDivCube.apply
+
+
+class Acosh(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, x):
+        x = torch.clamp(x, min=1+EPS[x.dtype])
+        z = torch.sqrt(x * x - 1)
+        ctx.save_for_backward(z)
+        return torch.log(x + z)
+
+    @staticmethod
+    def backward(ctx, g):
+        z, = ctx.saved_tensors
+        z.data.clamp(min=EPS[z.dtype])
+        z = g / z
+        return z, None
+
+
+arcosh = Acosh.apply

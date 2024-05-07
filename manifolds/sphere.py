@@ -74,7 +74,7 @@ if __name__ == '__main__':
     def func(x, v):
         m = Sphere()
         return m.expmap(x, v)
-    x, v = torch.tensor([[2., 1., 1., 1.]]), torch.tensor([[1., 0., 0., 2.]])
+    x, v = torch.tensor([[1., 0., 0.]]), torch.tensor([[0., 0., 2.]])
     j = jacobian(func, (x, v))[1]
     jv = Sphere().jacobian_expmap_v(x, v)
     print(j, j.shape)

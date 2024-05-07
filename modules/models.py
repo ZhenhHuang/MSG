@@ -8,15 +8,16 @@ from manifolds.euclidean import Euclidean
 
 
 class RiemannianSpikeGNN(nn.Module):
-    def __init__(self, manifold, T, n_layers, in_dim, embed_dim, n_classes):
+    def __init__(self, manifold, T, n_layers, step_size, in_dim, embed_dim, n_classes):
         super(RiemannianSpikeGNN, self).__init__()
         if isinstance(manifold, Lorentz):
             embed_dim += 1
         self.manifold = manifold
-        self.encoder = RSEncoderLayer(manifold, T, in_dim, embed_dim)
+        self.step_size = step_size
+        self.encoder = RSEncoderLayer(manifold, T, in_dim, embed_dim, step_size=step_size)
         self.layers = nn.ModuleList([])
         for _ in range(n_layers):
-            self.layers.append(RiemannianSGNNLayer(manifold, embed_dim))
+            self.layers.append(RiemannianSGNNLayer(manifold, embed_dim, step_size=step_size))
         self.fc = nn.Linear(embed_dim, n_classes)
 
     def forward(self, data, task):
