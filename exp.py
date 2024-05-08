@@ -44,7 +44,14 @@ class Exp:
         for exp_iter in range(self.configs.exp_iters):
             logger.info(f"\ntrain iters {exp_iter}")
 
-            manifold = Euclidean()
+            if self.configs.manifold == "euclidean":
+                manifold = Euclidean()
+            elif self.configs.manifold == 'lorentz':
+                manifold = Lorentz()
+            elif self.configs.manifold == 'sphere':
+                manifold = Sphere()
+            else:
+                raise NotImplementedError
             model = RiemannianSpikeGNN(manifold, T=self.configs.T, n_layers=self.configs.n_layers,
                                        in_dim=data["num_features"],
                                        embed_dim=self.configs.embed_dim, n_classes=data["num_classes"],
@@ -84,7 +91,7 @@ class Exp:
             logger.info(f"test AP: {np.mean(aps)}~{np.std(aps)}")
 
     def cal_cls_loss(self, model, data, mask):
-        out = model(data, task='nc')
+        out = model(data, task='NC')
         # one_hot_labels = F.one_hot(data["labels"][mask], data["num_classes"]).float()
         # loss = F.mse_loss(out[mask], one_hot_labels)
         loss = F.cross_entropy(out[mask], data["labels"][mask])
@@ -110,7 +117,7 @@ class Exp:
             optimizer.step()
             epoch_time = time.time() - epoch_time
             logger.info(f"Epoch {epoch}: train_loss={loss.item()}, train_accuracy={acc}"
-                        f", epoch_time={epoch_time} s, backward_time={backward_time} s")
+                        f", \n epoch_time={epoch_time} s, backward_time={backward_time} s")
             all_times.append(epoch_time)
             all_backward_times.append(backward_time)
 
@@ -158,7 +165,7 @@ class Exp:
             t = time.time()
             model.train()
             optimizer_lp.zero_grad()
-            embeddings = model(data, task='lp')
+            embeddings = model(data, task='LP')
             neg_edge_train = data["neg_edges_train"][:,
                              np.random.randint(0, data["neg_edges_train"].shape[1], data["pos_edges_train"].shape[1])]
             loss, auc, ap = self.cal_lp_loss(embeddings, model, data["pos_edges_train"], neg_edge_train)

@@ -164,3 +164,4 @@ results/
 *.pt
 *.ipynb
 *.txt
+configs/
