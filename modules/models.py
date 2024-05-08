@@ -8,30 +8,35 @@ from manifolds.euclidean import Euclidean
 
 
 class RiemannianSpikeGNN(nn.Module):
-    def __init__(self, manifold, T, n_layers, step_size, in_dim, embed_dim, n_classes):
+    def __init__(self, manifold, T, n_layers, step_size, in_dim, embed_dim,
+                 n_classes, v_threshold=1.0, dropout=0.1):
         super(RiemannianSpikeGNN, self).__init__()
         if isinstance(manifold, Lorentz):
             embed_dim += 1
         self.manifold = manifold
         self.step_size = step_size
-        self.encoder = RSEncoderLayer(manifold, T, in_dim, embed_dim, step_size=step_size)
+        self.encoder = RSEncoderLayer(manifold, T, in_dim, embed_dim,
+                             step_size=step_size, v_threshold=v_threshold, dropout=dropout)
         self.layers = nn.ModuleList([])
         for _ in range(n_layers):
-            self.layers.append(RiemannianSGNNLayer(manifold, embed_dim, step_size=step_size))
+            self.layers.append(
+                RiemannianSGNNLayer(manifold, embed_dim,
+                        step_size=step_size, v_threshold=v_threshold, dropout=dropout)
+            )
         self.fc = nn.Linear(embed_dim, n_classes)
 
     def forward(self, data, task):
         x = data['features']
-        if task == 'nc':
+        if task == 'NC':
             edge_index = data['edge_index']
-        elif task == 'lp':
+        elif task == 'LP':
             edge_index = data['pos_edges_train']
         else:
             raise NotImplementedError
         x, z = self.encoder(x, edge_index)
         for layer in self.layers:
             x, z = layer(x, z, edge_index)
-        if task == 'nc' and not isinstance(self.manifold, Euclidean):
+        if task == 'NC' and not isinstance(self.manifold, Euclidean):
             z = self.manifold.proju0(self.manifold.logmap0(z))
         z = self.fc(z)
         return z

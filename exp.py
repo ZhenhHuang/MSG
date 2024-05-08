@@ -4,9 +4,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
 from geoopt.optim import RiemannianAdam
-from manifolds.lorentz import Lorentz
-from manifolds.sphere import Sphere
-from manifolds.euclidean import Euclidean
+from manifolds import Lorentz, Sphere, Euclidean
 from modules.models import FermiDiracDecoder, RiemannianSpikeGNN
 from spikingjelly.clock_driven.functional import reset_net
 from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP, calc_params
@@ -45,20 +43,14 @@ class Exp:
             aps = []
         for exp_iter in range(self.configs.exp_iters):
             logger.info(f"\ntrain iters {exp_iter}")
-            # model = SpikeClassifier(T=self.configs.T, backbone=self.configs.backbone, n_layers=self.configs.n_layers,
-            #                         n_neurons=data["num_features"], hidden_neurons=self.configs.hidden_features_cls,
-            #                         embed_neurons=self.configs.embed_features_cls, num_classes=data["num_classes"],
-            #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device) \
-            #     if self.configs.downstream_task == 'NC' \
-            #     else SpikeLinkPredictor(T=self.configs.T, backbone=self.configs.backbone, n_layers=self.configs.n_layers,
-            #                         n_neurons=data["num_features"], hidden_neurons=self.configs.hidden_features_cls,
-            #                         embed_neurons=self.configs.embed_features_cls,
-            #                         n_heads=self.configs.n_heads, dropout=self.configs.drop_cls).to(device)
 
             manifold = Euclidean()
-            model = RiemannianSpikeGNN(manifold, T=20, n_layers=2, in_dim=data["num_features"], embed_dim=64,
-                                       n_classes=data["num_classes"], step_size=1.).to(device)
-            flops, params = calc_params(model, data, self.configs.downstream_task.lower())
+            model = RiemannianSpikeGNN(manifold, T=self.configs.T, n_layers=self.configs.n_layers,
+                                       in_dim=data["num_features"],
+                                       embed_dim=self.configs.embed_dim, n_classes=data["num_classes"],
+                                       step_size=self.configs.step_size, v_threshold=self.configs.v_threshold,
+                                       dropout=self.configs.dropout).to(device)
+            flops, params = calc_params(model, data, self.configs.downstream_task)
             logger.info(f"flops: {flops}, params: {params}")
 
             logger.info("--------------------------Training Start-------------------------")
@@ -103,22 +95,24 @@ class Exp:
     def train_cls(self, data, model_cls, logger):
         best_acc = 0.
         early_stop_count = 0
-        time_before_train = time.time()
         all_times = []
-        optimizer_cls = torch.optim.Adam(model_cls.parameters(), lr=self.configs.lr_cls,
+        all_backward_times = []
+        optimizer = torch.optim.Adam(model_cls.parameters(), lr=self.configs.lr_cls,
                                          weight_decay=self.configs.w_decay_cls)
-        torch.autograd.set_detect_anomaly(True)
         for epoch in range(1, self.configs.epochs_cls + 1):
-            now_time = time.time()
             model_cls.train()
-            optimizer_cls.zero_grad()
+            optimizer.zero_grad()
+            epoch_time = time.time()
             loss, acc, weighted_f1, macro_f1 = self.cal_cls_loss(model_cls, data, data["train_mask"])
+            backward_time = time.time()
             loss.backward()
-            # for param in list(model_cls.parameters()):
-            #     torch.nn.utils.clip_grad_norm_(param, 1.)
-            optimizer_cls.step()
-            logger.info(f"Epoch {epoch}: train_loss={loss.item()}, train_accuracy={acc}, time={time.time() - now_time}")
-            all_times.append(time.time() - now_time)
+            backward_time = time.time() - backward_time
+            optimizer.step()
+            epoch_time = time.time() - epoch_time
+            logger.info(f"Epoch {epoch}: train_loss={loss.item()}, train_accuracy={acc}"
+                        f", epoch_time={epoch_time} s, backward_time={backward_time} s")
+            all_times.append(epoch_time)
+            all_backward_times.append(backward_time)
 
             if epoch % self.configs.eval_freq == 0:
                 model_cls.eval()
@@ -131,9 +125,10 @@ class Exp:
                     early_stop_count += 1
                 if early_stop_count >= self.configs.patience_cls:
                     break
-            # reset_net(model_cls)
+
         avg_train_time = np.mean(all_times)
-        time_str = f"Average Time: {avg_train_time} s/epoch"
+        avg_backward_time = np.mean(all_backward_times)
+        time_str = f"Average Time: {avg_train_time} s/epoch, Average Backward Time: {avg_backward_time} s/epoch"
         logger.info(time_str)
         time_str = f"{self.configs.downstream_task}_{self.configs.dataset}_{time_str}\n"
         with open('time.txt', 'a') as f:
@@ -145,7 +140,6 @@ class Exp:
     def cal_lp_loss(self, embeddings, model, pos_edges, neg_edges):
         pos_scores = model.manifold.inner(None, embeddings[pos_edges[0]], embeddings[pos_edges[1]])
         neg_scores = model.manifold.inner(None, embeddings[neg_edges[0]], embeddings[neg_edges[1]])
-        # print(pos_scores.max(), neg_scores.max())
         loss = F.binary_cross_entropy_with_logits(pos_scores, torch.ones_like(pos_scores)) + \
                F.binary_cross_entropy_with_logits(neg_scores, torch.zeros_like(neg_scores))
         label = [1] * pos_scores.shape[0] + [0] * neg_scores.shape[0]

@@ -5,12 +5,12 @@ from modules.neuron import RiemannianIFNode
 
 
 class RSEncoderLayer(nn.Module):
-    def __init__(self, manifold, T, in_dim, out_dim, v_threshold=1., step_size=0.1):
+    def __init__(self, manifold, T, in_dim, out_dim, v_threshold=1., step_size=0.1, dropout=0.0):
         super(RSEncoderLayer, self).__init__()
         self.manifold = manifold
         self.fc = GCNConv(in_dim, out_dim)
         self.T = T
-        self.drop = nn.Dropout(0.5)
+        self.drop = nn.Dropout(dropout)
         self.neuron = RiemannianIFNode(manifold, v_threshold)
         self.step_size = step_size
 
@@ -23,12 +23,12 @@ class RSEncoderLayer(nn.Module):
 
 
 class RiemannianSGNNLayer(nn.Module):
-    def __init__(self, manifold, channels, v_threshold=1.0, step_size=0.1):
+    def __init__(self, manifold, channels, v_threshold=1.0, step_size=0.1, dropout=0.0):
         super(RiemannianSGNNLayer, self).__init__()
         self.manifold = manifold
         self.layer = GCNConv(channels, channels, bias=False)
         self.neuron = RiemannianIFNode(manifold, v_threshold)
-        self.drop = nn.Dropout(0.5)
+        self.drop = nn.Dropout(dropout)
         self.step_size = step_size
 
     def forward(self, s_seq, z_seq, edge_index):
