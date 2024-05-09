@@ -30,13 +30,22 @@ def cal_AUC_AP(scores, trues):
 
 
 def calc_params(model, data):
-    def count_layer(m, x, y):
+    def count_layer(m, input, output):
         # your rule here
-        pass
+        s, z, edge_index = input
+        s_o, z_o = output
+        m.total_params += z_o.shape[-1] * z.shape[-1]
+        m.total_ops += s_o.sum().item() * 3.7
 
-    def count_encoder(m, x, y):
+    def count_encoder(m, input, output):
         # your rule here
-        pass
+        x, edge_index = input
+        s_o, z_o = output
+        m.total_params += z_o.shape[-1] * x.shape[-1]
+        m.total_ops += 4.6 * (z_o.shape[-1] * edge_index.shape[-1] +
+                              2 * z_o.shape[0] * z_o.shape[-1] + z_o.shape[0] * z_o.shape[-1] * x.shape[-1] / 64)
+        m.total_ops += 3.7 * s_o.sum().item()
+
 
     """
     macs, params = profile(method.model,
@@ -44,15 +53,14 @@ def calc_params(model, data):
     """
     from modules.models import RiemannianSGNNLayer, RSEncoderLayer
     model.eval()
-    flops, params = profile(model,
+    energy, params = profile(model,
                             inputs=(data, ),
-                            # custom_ops={RSEncoderLayer: count_layer
-                            #     , RiemannianSGNNLayer: count_encoder}
+                            custom_ops={RSEncoderLayer: count_encoder
+                                , RiemannianSGNNLayer: count_layer}
                             )
-    print("num of nodes: ", data["features"].shape[0])
-    flops = flops / data["features"].shape[0]
-    flops, params = clever_format([flops, params], "%.4f")
-    return flops, params
+    params = clever_format([params], "%.4f")
+    energy = f"{energy * 1e-9} mJ"
+    return energy, params
 
 
 class OutputExtractor(nn.Module):

@@ -15,6 +15,9 @@ class Euclidean(geoopt.manifolds.Euclidean):
     def proju0(self, v):
         return v
 
+    def dist(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
+        return (x - u).norm(dim=-1, keepdim=keepdim)
+
     def inner(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
     ) -> torch.Tensor:

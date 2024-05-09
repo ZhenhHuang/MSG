@@ -58,13 +58,15 @@ class Exp:
                                        step_size=self.configs.step_size, v_threshold=self.configs.v_threshold,
                                        dropout=self.configs.dropout, self_train=self.configs.self_train,
                                        task=self.configs.task).to(device)
-            flops, params = calc_params(model, data)
-            logger.info(f"flops: {flops}, params: {params}")
 
             logger.info("--------------------------Training Start-------------------------")
             if self.configs.self_train:
+                flops, params = calc_params(model, data)
+                logger.info(f"flops: {flops}, params: {params}")
                 model = self.pre_train(data, model, logger)
             if self.configs.task == 'NC':
+                flops, params = calc_params(model, data)
+                logger.info(f"flops: {flops}, params: {params}")
                 best_val, test_acc, test_weighted_f1, test_macro_f1 = self.train_cls(data, model, logger)
                 logger.info(
                     f"val_accuracy={best_val.item() * 100: .2f}%, test_accuracy={test_acc.item() * 100: .2f}%")
@@ -75,6 +77,8 @@ class Exp:
                 wf1s.append(test_weighted_f1)
                 mf1s.append(test_macro_f1)
             elif self.configs.task == 'LP':
+                flops, params = calc_params(model, data)
+                logger.info(f"flops: {flops}, params: {params}")
                 _, test_auc, test_ap = self.train_lp(data, model, logger)
                 logger.info(
                     f"test_auc={test_auc * 100: .2f}%, test_ap={test_ap * 100: .2f}%")
