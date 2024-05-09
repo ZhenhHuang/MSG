@@ -29,7 +29,7 @@ def cal_AUC_AP(scores, trues):
     return auc, ap
 
 
-def calc_params(model, data, task):
+def calc_params(model, data):
     def count_layer(m, x, y):
         # your rule here
         pass
@@ -45,7 +45,7 @@ def calc_params(model, data, task):
     from modules.models import RiemannianSGNNLayer, RSEncoderLayer
     model.eval()
     flops, params = profile(model,
-                            inputs=(data, task),
+                            inputs=(data, ),
                             # custom_ops={RSEncoderLayer: count_layer
                             #     , RiemannianSGNNLayer: count_encoder}
                             )
@@ -53,3 +53,12 @@ def calc_params(model, data, task):
     flops = flops / data["features"].shape[0]
     flops, params = clever_format([flops, params], "%.4f")
     return flops, params
+
+
+class OutputExtractor(nn.Module):
+    def __init__(self, index):
+        super(OutputExtractor, self).__init__()
+        self.index = index
+
+    def forward(self, output: tuple):
+        return output[self.index]

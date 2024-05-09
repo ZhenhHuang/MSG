@@ -7,7 +7,7 @@ from geoopt.optim import RiemannianAdam
 from manifolds import Lorentz, Sphere, Euclidean
 from modules.models import FermiDiracDecoder, RiemannianSpikeGNN
 from spikingjelly.clock_driven.functional import reset_net
-from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP, calc_params
+from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP, calc_params, OutputExtractor
 from utils.data_utils import load_data, mask_edges
 from logger import create_logger
 import time
@@ -33,12 +33,12 @@ class Exp:
         data = load_data(self.configs.root_path, self.configs.dataset)
         self.send_device(data)
 
-        if self.configs.downstream_task == "NC":
+        if self.configs.task == "NC":
             vals = []
             accs = []
             wf1s = []
             mf1s = []
-        elif self.configs.downstream_task == "LP":
+        elif self.configs.task == "LP":
             aucs = []
             aps = []
         for exp_iter in range(self.configs.exp_iters):
@@ -56,12 +56,15 @@ class Exp:
                                        in_dim=data["num_features"],
                                        embed_dim=self.configs.embed_dim, n_classes=data["num_classes"],
                                        step_size=self.configs.step_size, v_threshold=self.configs.v_threshold,
-                                       dropout=self.configs.dropout).to(device)
-            flops, params = calc_params(model, data, self.configs.downstream_task)
+                                       dropout=self.configs.dropout, self_train=self.configs.self_train,
+                                       task=self.configs.task).to(device)
+            flops, params = calc_params(model, data)
             logger.info(f"flops: {flops}, params: {params}")
 
             logger.info("--------------------------Training Start-------------------------")
-            if self.configs.downstream_task == 'NC':
+            if self.configs.self_train:
+                model = self.pre_train(data, model, logger)
+            if self.configs.task == 'NC':
                 best_val, test_acc, test_weighted_f1, test_macro_f1 = self.train_cls(data, model, logger)
                 logger.info(
                     f"val_accuracy={best_val.item() * 100: .2f}%, test_accuracy={test_acc.item() * 100: .2f}%")
@@ -71,7 +74,7 @@ class Exp:
                 accs.append(test_acc.item())
                 wf1s.append(test_weighted_f1)
                 mf1s.append(test_macro_f1)
-            elif self.configs.downstream_task == 'LP':
+            elif self.configs.task == 'LP':
                 _, test_auc, test_ap = self.train_lp(data, model, logger)
                 logger.info(
                     f"test_auc={test_auc * 100: .2f}%, test_ap={test_ap * 100: .2f}%")
@@ -80,18 +83,40 @@ class Exp:
             else:
                 raise NotImplementedError
 
-        if self.configs.downstream_task == "NC":
+        if self.configs.task == "NC":
             logger.info(f"valid results: {np.mean(vals)}~{np.std(vals)}")
             logger.info(f"best test ACC: {np.max(accs)}")
             logger.info(f"test results: {np.mean(accs)}~{np.std(accs)}")
             logger.info(f"test weighted-f1: {np.mean(wf1s)}~{np.std(wf1s)}")
             logger.info(f"test macro-f1: {np.mean(mf1s)}~{np.std(mf1s)}")
-        elif self.configs.downstream_task == "LP" or self.configs.downstream_task == 'Motif':
+        elif self.configs.task == "LP" or self.configs.task == 'Motif':
             logger.info(f"test AUC: {np.mean(aucs)}~{np.std(aucs)}")
             logger.info(f"test AP: {np.mean(aps)}~{np.std(aps)}")
 
+    def pre_train(self, data, model, logger):
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.configs.lr,
+                                     weight_decay=self.configs.w_decay)
+        all_times = []
+        all_backward_times = []
+        for epoch in range(1, self.configs.epochs + 1):
+            model.train()
+            optimizer.zero_grad()
+            epoch_time = time.time()
+            _, loss = model(data)
+            backward_time = time.time()
+            loss.backward()
+            backward_time = time.time() - backward_time
+            optimizer.step()
+            epoch_time = time.time() - epoch_time
+            logger.info(f"Epoch {epoch}: train_loss={loss.item()}"
+                        f", \n epoch_time={epoch_time} s, backward_time={backward_time} s")
+            all_times.append(epoch_time)
+            all_backward_times.append(backward_time)
+        model.self_train = False
+        return model
+
     def cal_cls_loss(self, model, data, mask):
-        out = model(data, task='NC')
+        out = model(data)
         # one_hot_labels = F.one_hot(data["labels"][mask], data["num_classes"]).float()
         # loss = F.mse_loss(out[mask], one_hot_labels)
         loss = F.cross_entropy(out[mask], data["labels"][mask])
@@ -137,7 +162,7 @@ class Exp:
         avg_backward_time = np.mean(all_backward_times)
         time_str = f"Average Time: {avg_train_time} s/epoch, Average Backward Time: {avg_backward_time} s/epoch"
         logger.info(time_str)
-        time_str = f"{self.configs.downstream_task}_{self.configs.dataset}_{time_str}\n"
+        time_str = f"{self.configs.task}_{self.configs.dataset}_{time_str}\n"
         with open('time.txt', 'a') as f:
             f.write(time_str)
         f.close()
@@ -165,7 +190,7 @@ class Exp:
             t = time.time()
             model.train()
             optimizer_lp.zero_grad()
-            embeddings = model(data, task='LP')
+            embeddings = model(data)
             neg_edge_train = data["neg_edges_train"][:,
                              np.random.randint(0, data["neg_edges_train"].shape[1], data["pos_edges_train"].shape[1])]
             loss, auc, ap = self.cal_lp_loss(embeddings, model, data["pos_edges_train"], neg_edge_train)
@@ -191,7 +216,7 @@ class Exp:
         avg_train_time = (time.time() - time_before_train) / epoch
         time_str = f"Average Time: {avg_train_time} s/epoch"
         logger.info(time_str)
-        time_str = f"{self.configs.downstream_task}_{self.configs.dataset}_{time_str}\n"
+        time_str = f"{self.configs.task}_{self.configs.dataset}_{time_str}\n"
         with open('time.txt', 'a') as f:
             f.write(time_str)
         f.close()

@@ -9,6 +9,12 @@ class Euclidean(geoopt.manifolds.Euclidean):
     def expmap0(self, v):
         return v
 
+    def logmap0(self, v):
+        return v
+
+    def proju0(self, v):
+        return v
+
     def inner(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
     ) -> torch.Tensor:

@@ -17,7 +17,7 @@ np.random.seed(seed)
 parser = argparse.ArgumentParser(description='Metric Learning of Spiking GNN')
 
 # Experiment settings
-parser.add_argument('--downstream_task', type=str, default='NC',
+parser.add_argument('--task', type=str, default='NC',
                     choices=['NC', 'LP'])
 parser.add_argument('--dataset', type=str, default='Cora',
                     choices=['Cora', 'Citeseer', 'Pubmed', 'airport', 'computers', 'photo'])
@@ -26,6 +26,10 @@ parser.add_argument('--eval_freq', type=int, default=10)
 parser.add_argument('--exp_iters', type=int, default=5)
 parser.add_argument('--save_embeds', type=str, default="./results/embeds.npy")
 parser.add_argument('--log_path', type=str, default="./results/cls_Cora.log")
+parser.add_argument('--self_train', type=bool, default=True)
+parser.add_argument('--epochs', type=int, default=1)
+parser.add_argument('--lr', type=float, default=0.01)
+parser.add_argument('--w_decay', type=float, default=0.0)
 
 # Base Params
 parser.add_argument('--T', type=int, default=20, help="Time window length")
@@ -62,12 +66,12 @@ parser.add_argument('--devices', type=str, default='0,1', help='device ids of mu
 
 configs = parser.parse_args()
 results_dir = f"./results/"
-log_path = f"{results_dir}/{configs.downstream_task}_{configs.backbone}_{configs.dataset}.log"
+log_path = f"{results_dir}/{configs.task}_{configs.backbone}_{configs.dataset}.log"
 configs.log_path = log_path
 if not os.path.exists(results_dir):
     os.mkdir(results_dir)
 configs.save_embeds = f"{results_dir}/embeds.npy"
-json_path = f"./configs/{configs.downstream_task}/{configs.dataset}/{configs.manifold}.json"
+json_path = f"./configs/{configs.task}/{configs.dataset}/{configs.manifold}.json"
 # save_config(vars(configs), json_path)
 configs = load_config(vars(configs), json_path)
 
