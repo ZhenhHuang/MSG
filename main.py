@@ -17,16 +17,16 @@ np.random.seed(seed)
 parser = argparse.ArgumentParser(description='Metric Learning of Spiking GNN')
 
 # Experiment settings
-parser.add_argument('--task', type=str, default='NC',
+parser.add_argument('--task', type=str, default='LP',
                     choices=['NC', 'LP'])
-parser.add_argument('--dataset', type=str, default='Cora',
-                    choices=['Cora', 'Citeseer', 'Pubmed', 'airport', 'computers', 'photo'])
+parser.add_argument('--dataset', type=str, default='computers',
+                    choices=['Cora', 'Citeseer', 'computers', 'photo'])
 parser.add_argument('--root_path', type=str, default='D:\datasets\Graphs')
 parser.add_argument('--eval_freq', type=int, default=10)
 parser.add_argument('--exp_iters', type=int, default=5)
 parser.add_argument('--save_embeds', type=str, default="./results/embeds.npy")
 parser.add_argument('--log_path', type=str, default="./results/cls_Cora.log")
-parser.add_argument('--self_train', type=bool, default=True)
+parser.add_argument('--self_train', type=bool, default=False)
 parser.add_argument('--epochs', type=int, default=50)
 parser.add_argument('--lr', type=float, default=0.01)
 parser.add_argument('--w_decay', type=float, default=0.0)
@@ -37,15 +37,15 @@ parser.add_argument('--manifold', type=str, default='euclidean', choices=['eucli
 parser.add_argument('--backbone', type=str, default='gcn', choices=['gcn', 'gat', 'sage'])
 parser.add_argument('--n_layers', type=int, default=1)
 parser.add_argument('--n_heads', type=int, default=8, help='number of attention heads')
-parser.add_argument('--embed_dim', type=int, default=16, help='embedding dimension')
+parser.add_argument('--embed_dim', type=int, default=32, help='embedding dimension')
 parser.add_argument('--step_size', type=float, default=1.0, help='step size for tangent vector')
 parser.add_argument('--v_threshold', type=float, default=1.0, help='threshold for neuron')
-parser.add_argument('--dropout', type=float, default=0.1)
+parser.add_argument('--dropout', type=float, default=0.0)
 
 # Node Classification
 parser.add_argument('--epochs_cls', type=int, default=200)
 parser.add_argument('--lr_cls', type=float, default=0.01)
-parser.add_argument('--w_decay_cls', type=float, default=0.0)
+parser.add_argument('--w_decay_cls', type=float, default=5e-5)
 parser.add_argument('--patience_cls', type=int, default=3)
 parser.add_argument('--save_path_cls', type=str, default='./checkpoints/cls.pth')
 
@@ -66,13 +66,15 @@ parser.add_argument('--devices', type=str, default='0,1', help='device ids of mu
 
 configs = parser.parse_args()
 results_dir = f"./results/"
-log_path = f"{results_dir}/{configs.task}_{configs.backbone}_{configs.dataset}.log"
+log_path = f"{results_dir}/{configs.task}_{configs.manifold}_{configs.dataset}.log"
 configs.log_path = log_path
 if not os.path.exists(results_dir):
     os.mkdir(results_dir)
 configs.save_embeds = f"{results_dir}/embeds.npy"
 json_path = f"./configs/{configs.task}/{configs.dataset}/{configs.manifold}.json"
-# save_config(vars(configs), json_path)
+if not os.path.exists(f"./configs/{configs.task}/{configs.dataset}"):
+    os.mkdir(f"./configs/{configs.task}/{configs.dataset}")
+save_config(vars(configs), json_path)
 # configs = load_config(vars(configs), json_path)
 
 print(f"Log path: {configs.log_path}; embeds path: {configs.save_embeds}")

@@ -42,9 +42,9 @@ def calc_params(model, data):
         x, edge_index = input
         s_o, z_o = output
         m.total_params += z_o.shape[-1] * x.shape[-1]
-        m.total_ops += 4.6 * (z_o.shape[-1] * edge_index.shape[-1] +
-                              2 * z_o.shape[0] * z_o.shape[-1] + z_o.shape[0] * z_o.shape[-1] * x.shape[-1] / 64)
-        m.total_ops += 3.7 * s_o.sum().item()
+        # m.total_ops += 4.6 * (z_o.shape[-1] * edge_index.shape[-1] +
+        #                       2 * z_o.shape[0] * z_o.shape[-1] + z_o.shape[0] * z_o.shape[-1] * x.shape[-1] / 64)
+        m.total_ops += 4.6 * s_o.sum().item()
 
 
     """
