@@ -79,6 +79,8 @@ class Exp:
             elif self.configs.task == 'LP':
                 flops, params = calc_params(model, data)
                 logger.info(f"flops: {flops}, params: {params}")
+                # tot_params = sum([np.prod(p.size()) for p in model.parameters()])
+                # logger.info(f"Total number of parameters: {tot_params}")
                 _, test_auc, test_ap = self.train_lp(data, model, logger)
                 logger.info(
                     f"test_auc={test_auc * 100: .2f}%, test_ap={test_ap * 100: .2f}%")
@@ -174,7 +176,7 @@ class Exp:
         return best_acc, test_acc, test_weighted_f1, test_macro_f1
 
     def cal_lp_loss(self, embeddings, model, pos_edges, neg_edges):
-        if self.configs.manifold is not "lorentz":
+        if self.configs.manifold != "lorentz":
             pos_dists = model.manifold.dist(embeddings[pos_edges[0]], embeddings[pos_edges[1]])
             pos_scores = torch.sigmoid((self.configs.r - pos_dists) / self.configs.t)
             neg_dists = model.manifold.dist(embeddings[neg_edges[0]], embeddings[neg_edges[1]])

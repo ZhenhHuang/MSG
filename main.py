@@ -37,9 +37,9 @@ parser.add_argument('--manifold', type=str, default='euclidean', choices=['eucli
 parser.add_argument('--backbone', type=str, default='gcn', choices=['gcn', 'gat', 'sage'])
 parser.add_argument('--n_layers', type=int, default=1)
 parser.add_argument('--n_heads', type=int, default=8, help='number of attention heads')
-parser.add_argument('--embed_dim', type=int, default=32, help='embedding dimension')
-parser.add_argument('--step_size', type=float, default=1.0, help='step size for tangent vector')
-parser.add_argument('--v_threshold', type=float, default=1.0, help='threshold for neuron')
+parser.add_argument('--embed_dim', type=int, default=128, help='embedding dimension')
+parser.add_argument('--step_size', type=float, default=0.1, help='step size for tangent vector')
+parser.add_argument('--v_threshold', type=float, default=5.0, help='threshold for neuron')
 parser.add_argument('--dropout', type=float, default=0.0)
 
 # Node Classification
@@ -50,7 +50,7 @@ parser.add_argument('--patience_cls', type=int, default=3)
 parser.add_argument('--save_path_cls', type=str, default='./checkpoints/cls.pth')
 
 # Link Prediction
-parser.add_argument('--lr_lp', type=float, default=0.01)
+parser.add_argument('--lr_lp', type=float, default=0.001)
 parser.add_argument('--w_decay_lp', type=float, default=0)
 parser.add_argument('--epochs_lp', type=int, default=200)
 parser.add_argument('--patience_lp', type=int, default=3)
