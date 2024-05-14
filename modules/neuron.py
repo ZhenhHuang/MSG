@@ -35,7 +35,7 @@ class IFFunction(torch.autograd.Function):
 
 
 class RiemannianIFNode(nn.Module):
-    def __init__(self, manifold, v_threshold: float = 1.):
+    def __init__(self, manifold, v_threshold: float = 1., delta=0.05, tau=2):
         super(RiemannianIFNode, self).__init__()
         self.manifold = manifold
         self.v_threshold = v_threshold
@@ -54,7 +54,7 @@ class RiemannianIFNode(nn.Module):
 
 class LIFFunction(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, manifold, x_seq, v_seq, z_seq, v_threshold=1.0, delta=0.05, tau=2.):
+    def forward(ctx, manifold, x_seq, v_seq, z_seq, v_threshold=1.0, delta_t=0.05, tau=2.):
         ctx.manifold = manifold
         ctx.save_for_backward(x_seq, v_seq, z_seq)
         men_potential = torch.zeros_like(v_seq).to(v_seq.device)
@@ -81,7 +81,7 @@ class LIFFunction(torch.autograd.Function):
         grad_v = jacob_v.transpose(-1, -2) @ grad_z_output.unsqueeze(-1)
         grad_z = jacob_x.transpose(-1, -2) @ grad_z_output.unsqueeze(-1)
         # print(f"grad_v: {grad_v.norm(p=2)}, grad_z: {grad_z.norm(p=2)}")
-        return None, None, grad_v.squeeze(), grad_z.squeeze(), None
+        return None, None, grad_v.squeeze(), grad_z.squeeze(), None, None, None
 
 
 class RiemannianLIFNode(nn.Module):
@@ -105,6 +105,5 @@ class RiemannianLIFNode(nn.Module):
         return out_seq, z_out_seq
 
 
-
-
-
+RiemannianNeuron = {"IF": RiemannianIFNode,
+          "LIF": RiemannianLIFNode}

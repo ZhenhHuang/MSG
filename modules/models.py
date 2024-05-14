@@ -9,7 +9,8 @@ from manifolds.euclidean import Euclidean
 
 class RiemannianSpikeGNN(nn.Module):
     def __init__(self, manifold, T, n_layers, step_size, in_dim, embed_dim,
-                 n_classes, v_threshold=1.0, dropout=0.1, self_train=False, task='NC'):
+                 n_classes, v_threshold=1.0, dropout=0.1, neuron="IF", delta=0.05, tau=2,
+                 self_train=False, task='NC'):
         super(RiemannianSpikeGNN, self).__init__()
         if isinstance(manifold, Lorentz):
             embed_dim += 1
@@ -17,12 +18,12 @@ class RiemannianSpikeGNN(nn.Module):
         self.step_size = step_size
         self.self_train = self_train
         self.task = task
-        self.encoder = RSEncoderLayer(manifold, T, in_dim, embed_dim,
+        self.encoder = RSEncoderLayer(manifold, T, in_dim, embed_dim, neuron=neuron, delta=delta, tau=tau,
                                       step_size=step_size, v_threshold=v_threshold, dropout=dropout)
         self.layers = nn.ModuleList([])
         for _ in range(n_layers):
             self.layers.append(
-                RiemannianSGNNLayer(manifold, embed_dim,
+                RiemannianSGNNLayer(manifold, embed_dim, neuron=neuron, delta=delta, tau=tau,
                                     step_size=step_size, v_threshold=v_threshold, dropout=dropout)
             )
         self.fc = nn.Linear(embed_dim, n_classes) if task == "NC" else None

@@ -53,7 +53,7 @@ class Exp:
             else:
                 raise NotImplementedError
             model = RiemannianSpikeGNN(manifold, T=self.configs.T, n_layers=self.configs.n_layers,
-                                       in_dim=data["num_features"],
+                                       in_dim=data["num_features"], neuron=self.configs.neuron,
                                        embed_dim=self.configs.embed_dim, n_classes=data["num_classes"],
                                        step_size=self.configs.step_size, v_threshold=self.configs.v_threshold,
                                        dropout=self.configs.dropout, self_train=self.configs.self_train,
