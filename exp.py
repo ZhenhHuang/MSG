@@ -9,6 +9,7 @@ from modules.models import FermiDiracDecoder, RiemannianSpikeGNN
 from spikingjelly.clock_driven.functional import reset_net
 from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP, calc_params, OutputExtractor
 from utils.data_utils import load_data, mask_edges
+from utils.train_utils import EarlyStopping
 from logger import create_logger
 import time
 import os
@@ -65,9 +66,9 @@ class Exp:
                 logger.info(f"flops: {flops}, params: {params}")
                 model = self.pre_train(data, model, logger)
             if self.configs.task == 'NC':
-                flops, params = calc_params(model, data)
-                logger.info(f"flops: {flops}, params: {params}")
-                best_val, test_acc, test_weighted_f1, test_macro_f1 = self.train_cls(data, model, logger)
+                # flops, params = calc_params(model, data)
+                # logger.info(f"flops: {flops}, params: {params}")
+                best_val, test_acc, test_weighted_f1, test_macro_f1 = self.train_cls(data, model, logger, exp_iter)
                 logger.info(
                     f"val_accuracy={best_val.item() * 100: .2f}%, test_accuracy={test_acc.item() * 100: .2f}%")
                 logger.info(
@@ -81,7 +82,7 @@ class Exp:
                 logger.info(f"flops: {flops}, params: {params}")
                 # tot_params = sum([np.prod(p.size()) for p in model.parameters()])
                 # logger.info(f"Total number of parameters: {tot_params}")
-                _, test_auc, test_ap = self.train_lp(data, model, logger)
+                _, test_auc, test_ap = self.train_lp(data, model, logger, exp_iter)
                 logger.info(
                     f"test_auc={test_auc * 100: .2f}%, test_ap={test_ap * 100: .2f}%")
                 aucs.append(test_auc)
@@ -130,12 +131,12 @@ class Exp:
         weighted_f1, macro_f1 = cal_F1(out[mask].detach().cpu(), data["labels"][mask].detach().cpu())
         return loss, acc, weighted_f1, macro_f1
 
-    def train_cls(self, data, model_cls, logger):
+    def train_cls(self, data, model_cls, logger, exp_iter: int):
         best_acc = 0.
-        early_stop_count = 0
         all_times = []
         all_backward_times = []
-        optimizer = torch.optim.Adam(model_cls.parameters(), lr=self.configs.lr_cls,
+        early_stop = EarlyStopping(self.configs.patience_cls)
+        optimizer = RiemannianAdam(model_cls.parameters(), lr=self.configs.lr_cls,
                                          weight_decay=self.configs.w_decay_cls)
         for epoch in range(1, self.configs.epochs_cls + 1):
             model_cls.train()
@@ -157,11 +158,10 @@ class Exp:
                 val_loss, acc, weighted_f1, macro_f1 = self.cal_cls_loss(model_cls, data, data['val_mask'])
                 logger.info(f"Epoch {epoch}: val_loss={val_loss.item()}, val_accuracy={acc}")
                 if acc > best_acc:
-                    early_stop_count = 0
                     best_acc = acc
-                else:
-                    early_stop_count += 1
-                if early_stop_count >= self.configs.patience_cls:
+                early_stop(val_loss, model_cls,
+                           f"{self.configs.task}_{self.configs.dataset}_{self.configs.manifold}_{exp_iter}.pt")
+                if early_stop.early_stop:
                     break
 
         avg_train_time = np.mean(all_times)
@@ -193,12 +193,12 @@ class Exp:
         auc, ap = cal_AUC_AP(preds, label)
         return loss, auc, ap
 
-    def train_lp(self, data, model, logger):
+    def train_lp(self, data, model, logger, exp_iter: int):
         optimizer_lp = torch.optim.Adam(model.parameters(), lr=self.configs.lr_lp,
                                         weight_decay=self.configs.w_decay_lp)
         # decoder = FermiDiracDecoder(self.configs.r, self.configs.t).to(self.device)
         best_ap = 0
-        early_stop_count = 0
+        early_stop = EarlyStopping(self.configs.patience_cls)
         time_before_train = time.time()
         for epoch in range(1, self.configs.epochs_lp + 1):
             t = time.time()
@@ -217,14 +217,10 @@ class Exp:
                 val_loss, auc, ap = self.cal_lp_loss(embeddings, model, data["pos_edges_val"], data["neg_edges_val"])
                 logger.info(f"Epoch {epoch}: val_loss={val_loss.item()}, val_AUC={auc}, val_AP={ap}")
                 if ap > best_ap:
-                    early_stop_count = 0
                     best_ap = ap
-                    embeds = embeddings.detach().cpu().numpy()
-                    np.save(self.configs.save_embeds, embeds)
-                else:
-                    early_stop_count += 1
-                if early_stop_count >= self.configs.patience_lp:
-                    logger.info("Early Stopping")
+                early_stop(val_loss, model_cls,
+                           f"{self.configs.task}_{self.configs.dataset}_{self.configs.manifold}_{exp_iter}.pt")
+                if early_stop.early_stop:
                     break
             reset_net(model)
         avg_train_time = (time.time() - time_before_train) / epoch

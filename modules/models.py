@@ -5,6 +5,7 @@ from spikingjelly.clock_driven.neuron import MultiStepLIFNode
 from modules.layers import RiemannianSGNNLayer, RSEncoderLayer
 from manifolds.lorentz import Lorentz
 from manifolds.euclidean import Euclidean
+from geoopt.tensor import ManifoldParameter
 
 
 class RiemannianSpikeGNN(nn.Module):
@@ -26,7 +27,8 @@ class RiemannianSpikeGNN(nn.Module):
                 RiemannianSGNNLayer(manifold, embed_dim, neuron=neuron, delta=delta, tau=tau,
                                     step_size=step_size, v_threshold=v_threshold, dropout=dropout)
             )
-        self.fc = nn.Linear(embed_dim, n_classes) if task == "NC" else None
+        self.fc = nn.Linear(embed_dim, n_classes, bias=False) if task == "NC" else None
+        # self.fc = RiemannianClassifier(manifold, n_classes, embed_dim) if task == "NC" else None
 
     def forward(self, data):
         x = data['features']
@@ -59,6 +61,20 @@ class RiemannianSpikeGNN(nn.Module):
         prob = pos / dists.sum(-1)
         loss = -torch.log(prob.clamp(min=1e-8)).mean()
         return loss
+
+
+class RiemannianClassifier(nn.Module):
+    def __init__(self, manifold, num_classes, n_dim):
+        super(RiemannianClassifier, self).__init__()
+        self.manifold = manifold
+        self.points = ManifoldParameter(torch.randn((1, num_classes, n_dim)), manifold, requires_grad=True)
+        self.points.data = self.manifold.projx(self.points.data)
+        self.w = nn.Linear(num_classes, num_classes, bias=False)
+
+    def forward(self, x):
+        dist = self.manifold.dist(self.points, x.unsqueeze(1))
+        logits = self.w(dist)
+        return logits
 
 
 class FermiDiracDecoder(nn.Module):

@@ -19,7 +19,7 @@ class RSEncoderLayer(nn.Module):
                  v_threshold=1., delta=0.05, tau=2., step_size=0.1, dropout=0.0):
         super(RSEncoderLayer, self).__init__()
         self.manifold = manifold
-        self.fc = GCNConv(in_dim, out_dim)
+        self.fc = GCNConv(in_dim, out_dim, bias=False)
         self.T = T
         self.drop = nn.Dropout(dropout)
         self.drop_edge = DropEdge(dropout)
