@@ -22,11 +22,11 @@ class RiemannianSpikeGNN(nn.Module):
         self.encoder = RSEncoderLayer(manifold, T, in_dim, embed_dim, neuron=neuron, delta=delta, tau=tau,
                                       step_size=step_size, v_threshold=v_threshold, dropout=dropout)
         self.layers = nn.ModuleList([])
-        for _ in range(n_layers):
-            self.layers.append(
-                RiemannianSGNNLayer(manifold, embed_dim, neuron=neuron, delta=delta, tau=tau,
-                                    step_size=step_size, v_threshold=v_threshold, dropout=dropout)
-            )
+        for i in range(n_layers):
+            self.layers.add_module(f"layer_{i}",
+                                   RiemannianSGNNLayer(manifold, embed_dim, neuron=neuron, delta=delta, tau=tau,
+                                                       step_size=step_size, v_threshold=v_threshold, dropout=dropout)
+                                   )
         self.fc = nn.Linear(embed_dim, n_classes, bias=False) if task == "NC" else None
         # self.fc = RiemannianClassifier(manifold, n_classes, embed_dim) if task == "NC" else None
 

@@ -3,6 +3,7 @@ from typing import Union, Tuple, Optional
 import geoopt
 import torch
 from utils.math_utils import sin_div, cos_div_square, sin_div_cube
+from geoopt.manifolds.stereographic.math import geodesic
 
 
 EPS = {torch.float32: 1e-4, torch.float64: 1e-7}
@@ -22,6 +23,9 @@ class Sphere(geoopt.Sphere):
         pole = torch.zeros(*size, dtype=dtype).to(device)
         pole.narrow(-1, 0, 1).add_(-1)
         return pole
+
+    def geodesic(self, t, x, y):
+        return geodesic(t, x, y, k=torch.tensor([1.]).to(x.device))
 
     def expmap0(self, u: torch.Tensor, dim=-1):
         """Choose South Pole"""

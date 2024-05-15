@@ -71,6 +71,10 @@ def load_data(root: str, data_name: str, split='public', num_val=0.1, num_test=0
         train_mask = index[: int(n * 0.7)]
         val_mask = index[int(n * 0.7): int(n * 0.8)]
         test_mask = index[int(n * 0.8):]
+    elif data_name == "KarateClub":
+        dataset = KarateClub()
+        dataset.data = RandomNodeSplit(num_val=0.2, num_test=0.3)(dataset.data[0])
+        train_mask, val_mask, test_mask = dataset.data.train_mask, dataset.data.val_mask, dataset.data.test_mask
     else:
         raise NotImplementedError
 
@@ -149,7 +153,7 @@ def split_data(labels, val_prop, test_prop, seed):
     return idx_val_pos + idx_val_neg, idx_test_pos + idx_test_neg, idx_train_pos + idx_train_neg
 
 
-class Airport(InMemoryDataset):
+class Airport:
     def __init__(self, root):
         super(Airport, self).__init__()
         val_prop, test_prop = 0.15, 0.15
@@ -172,20 +176,16 @@ class Airport(InMemoryDataset):
                                               y=torch.tensor(labels),
                                               mask=mask)
 
-        @property
-        def num_features(self) -> int:
-            return self.data.x.shape[-1]
 
-        @property
-        def raw_file_names(self):
-            pass
-
-        @property
-        def processed_file_names(self):
-            pass
-
-        def download(self):
-            pass
-
-        def process(self):
-            pass
+class KarateClub:
+    def __init__(self):
+        data = torch_geometric.datasets.KarateClub()
+        self.feature = data.x
+        self.num_features = data.x.shape[1]
+        self.num_nodes = data.x.shape[0]
+        self.edge_index = data.edge_index
+        self.weight = torch.ones(self.edge_index.shape[1])
+        self.labels = data.y
+        self.num_classes = len(np.unique(self.labels))
+        self.neg_edge_index = negative_sampling(data.edge_index)
+        self.data = data

@@ -165,3 +165,6 @@ results/
 *.ipynb
 *.txt
 configs/
+*.pdf
+checkpoints/
+*.png
