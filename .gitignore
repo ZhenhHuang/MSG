@@ -162,7 +162,6 @@ datasets/
 checkpoints/
 results/
 *.pt
-*.ipynb
 *.txt
 configs/
 *.pdf
