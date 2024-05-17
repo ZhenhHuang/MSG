@@ -107,3 +107,50 @@ class RiemannianLIFNode(nn.Module):
 
 RiemannianNeuron = {"IF": RiemannianIFNode,
           "LIF": RiemannianLIFNode}
+
+
+from spikingjelly.clock_driven.neuron import MultiStepIFNode, MultiStepLIFNode
+
+
+class IFNode(nn.Module):
+    def __init__(self, manifold, v_threshold: float = 1., delta=0.05, tau=2):
+        super(IFNode, self).__init__()
+        self.manifold = manifold
+        self.neuron = MultiStepIFNode(v_threshold=v_threshold, detach_reset=True)
+        print("Using IF Node")
+
+    def forward(self, x_seq: torch.Tensor, v_seq: torch.Tensor, z_seq: torch.Tensor):
+        """
+
+        :param x_seq: [T, N, D]
+        :param v_seq: [N, D]
+        :param z_seq: [N, D]
+        :return:
+        """
+        out_seq = self.neuron(x_seq)
+        z_out_seq = self.manifold.expmap(z_seq, v_seq)
+        return out_seq, z_out_seq
+
+
+class LIFNode(nn.Module):
+    def __init__(self, manifold, v_threshold: float = 1., delta=0.05, tau=2.):
+        super(LIFNode, self).__init__()
+        self.manifold = manifold
+        self.neuron = MultiStepLIFNode(v_threshold=v_threshold, detach_reset=True, tau=tau)
+        print("Using LIF Node")
+
+    def forward(self, x_seq: torch.Tensor, v_seq: torch.Tensor, z_seq: torch.Tensor):
+        """
+
+        :param x_seq: [T, N, D]
+        :param v_seq: [N, D]
+        :param z_seq: [N, D]
+        :return:
+        """
+        out_seq = self.neuron(x_seq)
+        z_out_seq = self.manifold.expmap(z_seq, v_seq)
+        return out_seq, z_out_seq
+
+
+Neuron = {"IF": IFNode,
+          "LIF": LIFNode}

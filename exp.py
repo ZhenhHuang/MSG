@@ -58,7 +58,7 @@ class Exp:
                                        embed_dim=self.configs.embed_dim, n_classes=data["num_classes"],
                                        step_size=self.configs.step_size, v_threshold=self.configs.v_threshold,
                                        dropout=self.configs.dropout, self_train=self.configs.self_train,
-                                       task=self.configs.task).to(device)
+                                       task=self.configs.task, use_MS=self.configs.use_MS, tau=self.configs.tau).to(device)
 
             logger.info("--------------------------Training Start-------------------------")
             if self.configs.self_train:
@@ -124,8 +124,6 @@ class Exp:
 
     def cal_cls_loss(self, model, data, mask):
         out = model(data)
-        # one_hot_labels = F.one_hot(data["labels"][mask], data["num_classes"]).float()
-        # loss = F.mse_loss(out[mask], one_hot_labels)
         loss = F.cross_entropy(out[mask], data["labels"][mask])
         acc = cal_accuracy(out[mask], data["labels"][mask])
         weighted_f1, macro_f1 = cal_F1(out[mask].detach().cpu(), data["labels"][mask].detach().cpu())
@@ -152,6 +150,8 @@ class Exp:
                         f", \n epoch_time={epoch_time} s, backward_time={backward_time} s")
             all_times.append(epoch_time)
             all_backward_times.append(backward_time)
+            if self.configs.use_MS is not True:
+                reset_net(model_cls)
 
             if epoch % self.configs.eval_freq == 0:
                 model_cls.eval()
@@ -159,13 +159,16 @@ class Exp:
                 logger.info(f"Epoch {epoch}: val_loss={val_loss.item()}, val_accuracy={acc}")
                 if acc > best_acc:
                     best_acc = acc
-                early_stop(val_loss, model_cls,
+                early_stop(val_loss, model_cls, save=False, path=
                            f"{self.configs.task}_{self.configs.dataset}_{self.configs.manifold}_{exp_iter}.pt")
                 if early_stop.early_stop:
                     break
 
         avg_train_time = np.mean(all_times)
         avg_backward_time = np.mean(all_backward_times)
+        np.save(file=f"./results/times/backward_time_"
+                     f"{self.configs.dataset}_{self.configs.use_MS}_{self.configs.manifold}_{self.configs.T}.npy",
+                arr=np.array(all_backward_times))
         time_str = f"Average Time: {avg_train_time} s/epoch, Average Backward Time: {avg_backward_time} s/epoch"
         logger.info(time_str)
         time_str = f"{self.configs.task}_{self.configs.dataset}_{time_str}\n"
@@ -212,17 +215,18 @@ class Exp:
             optimizer_lp.step()
             logger.info(
                 f"Epoch {epoch}: train_loss={loss.item()}, train_AUC={auc}, train_AP={ap}, time={time.time() - t}")
+            if self.configs.use_MS is not True:
+                reset_net(model)
             if epoch % self.configs.eval_freq == 0:
                 model.eval()
                 val_loss, auc, ap = self.cal_lp_loss(embeddings, model, data["pos_edges_val"], data["neg_edges_val"])
                 logger.info(f"Epoch {epoch}: val_loss={val_loss.item()}, val_AUC={auc}, val_AP={ap}")
                 if ap > best_ap:
                     best_ap = ap
-                early_stop(val_loss, model_cls,
+                early_stop(val_loss, model, save=False, path=
                            f"{self.configs.task}_{self.configs.dataset}_{self.configs.manifold}_{exp_iter}.pt")
                 if early_stop.early_stop:
                     break
-            reset_net(model)
         avg_train_time = (time.time() - time_before_train) / epoch
         time_str = f"Average Time: {avg_train_time} s/epoch"
         logger.info(time_str)

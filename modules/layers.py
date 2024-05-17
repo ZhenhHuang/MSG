@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv
 from torch_geometric.utils import dropout_edge
-from modules.neuron import RiemannianNeuron
+from modules.neuron import RiemannianNeuron, Neuron
 
 
 class DropEdge(nn.Module):
@@ -16,14 +16,16 @@ class DropEdge(nn.Module):
 
 class RSEncoderLayer(nn.Module):
     def __init__(self, manifold, T, in_dim, out_dim, neuron,
-                 v_threshold=1., delta=0.05, tau=2., step_size=0.1, dropout=0.0):
+                 v_threshold=1., delta=0.05, tau=2.,
+                 step_size=0.1, dropout=0.0, use_MS=True):
         super(RSEncoderLayer, self).__init__()
         self.manifold = manifold
         self.fc = GCNConv(in_dim, out_dim, bias=False)
         self.T = T
         self.drop = nn.Dropout(dropout)
         self.drop_edge = DropEdge(dropout)
-        self.neuron = RiemannianNeuron[neuron](manifold, v_threshold, delta, tau)
+        self.neuron = RiemannianNeuron[neuron](manifold, v_threshold, delta, tau) if use_MS \
+            else Neuron[neuron](manifold, v_threshold, delta, tau)
         self.step_size = step_size
 
     def forward(self, x, edge_index):
@@ -37,11 +39,12 @@ class RSEncoderLayer(nn.Module):
 
 class RiemannianSGNNLayer(nn.Module):
     def __init__(self, manifold, channels, neuron, v_threshold=1.0,
-                 delta=0.05, tau=2.0, step_size=0.1, dropout=0.0):
+                 delta=0.05, tau=2.0, step_size=0.1, dropout=0.0, use_MS=True):
         super(RiemannianSGNNLayer, self).__init__()
         self.manifold = manifold
         self.layer = GCNConv(channels, channels, bias=False)
-        self.neuron = RiemannianNeuron[neuron](manifold, v_threshold, delta, tau)
+        self.neuron = RiemannianNeuron[neuron](manifold, v_threshold, delta, tau) if use_MS \
+            else Neuron[neuron](manifold, v_threshold, delta, tau)
         self.drop = nn.Dropout(dropout)
         self.drop_edge = DropEdge(dropout)
         self.step_size = step_size
