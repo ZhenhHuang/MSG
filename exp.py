@@ -61,12 +61,12 @@ class Exp:
             else:
                 manifold = m_tuple[0][0]
 
-            model = (RiemannianSpikeGNN(manifold, T=self.configs.T, n_layers=self.configs.n_layers,
+            model = RiemannianSpikeGNN(manifold, T=self.configs.T, n_layers=self.configs.n_layers,
                                        in_dim=data["num_features"], neuron=self.configs.neuron,
                                        embed_dim=sum(self.configs.embed_dim), n_classes=data["num_classes"],
                                        step_size=self.configs.step_size, v_threshold=self.configs.v_threshold,
                                        dropout=self.configs.dropout, self_train=self.configs.self_train,
-                                       task=self.configs.task, use_MS=self.configs.use_MS, tau=self.configs.tau).to(device))
+                                       task=self.configs.task, use_MS=self.configs.use_MS, tau=self.configs.tau).to(device)
 
             logger.info("--------------------------Training Start-------------------------")
             if self.configs.self_train:
@@ -74,11 +74,11 @@ class Exp:
                 logger.info(f"energy: {energy}, params: {params}")
                 model = self.pre_train(data, model, logger)
             if self.configs.task == 'NC':
-                energy, params = calc_params(model, data)
-                logger.info(f"energy: {energy}, params: {params}")
+                # energy, params = calc_params(model, data)
+                # logger.info(f"energy: {energy}, params: {params}")
                 best_val, test_acc, test_weighted_f1, test_macro_f1 = self.train_cls(data, model, logger, exp_iter)
-                energy, params = calc_params(model, data)
-                logger.info(f"energy: {energy}, params: {params}")
+                # energy, params = calc_params(model, data)
+                # logger.info(f"energy: {energy}, params: {params}")
                 logger.info(
                     f"val_accuracy={best_val.item() * 100: .2f}%, test_accuracy={test_acc.item() * 100: .2f}%")
                 logger.info(
@@ -88,11 +88,11 @@ class Exp:
                 wf1s.append(test_weighted_f1)
                 mf1s.append(test_macro_f1)
             elif self.configs.task == 'LP':
-                energy, params = calc_params(model, data)
-                logger.info(f"energy: {energy}, params: {params}")
+                # energy, params = calc_params(model, data)
+                # logger.info(f"energy: {energy}, params: {params}")
                 _, test_auc, test_ap = self.train_lp(data, model, logger, exp_iter)
-                energy, params = calc_params(model, data)
-                logger.info(f"energy: {energy}, params: {params}")
+                # energy, params = calc_params(model, data)
+                # logger.info(f"energy: {energy}, params: {params}")
                 logger.info(
                     f"test_auc={test_auc * 100: .2f}%, test_ap={test_ap * 100: .2f}%")
                 aucs.append(test_auc)
@@ -134,10 +134,10 @@ class Exp:
 
     def cal_cls_loss(self, model, data, mask):
         out = model(data)[mask]
-        correct = out.gather(1, data['labels'][mask].unsqueeze(-1))
-        # loss = F.cross_entropy(out, data["labels"][mask])
-        target = torch.ones_like(correct)
-        loss = F.margin_ranking_loss(correct, out, target, margin=self.configs.margin, reduction="mean")
+        # correct = out.gather(1, data['labels'][mask].unsqueeze(-1))
+        loss = F.cross_entropy(out, data["labels"][mask])
+        # target = torch.ones_like(correct)
+        # loss = F.margin_ranking_loss(correct, out, target, margin=self.configs.margin, reduction="mean")
         acc = cal_accuracy(out, data["labels"][mask])
         weighted_f1, macro_f1 = cal_F1(out.detach().cpu(), data["labels"][mask].detach().cpu())
         return loss, acc, weighted_f1, macro_f1
@@ -146,7 +146,7 @@ class Exp:
         best_acc = 0.
         all_times = []
         all_backward_times = []
-        early_stop = EarlyStopping(self.configs.patience_cls)
+        early_stop = EarlyStopping(self.configs.patience_cls, verbose=True)
         optimizer = RiemannianAdam(model_cls.parameters(), lr=self.configs.lr_cls,
                                    weight_decay=self.configs.w_decay_cls)
         for epoch in range(1, self.configs.epochs_cls + 1):
@@ -172,7 +172,7 @@ class Exp:
                 logger.info(f"Epoch {epoch}: val_loss={val_loss.item()}, val_accuracy={acc}")
                 if acc > best_acc:
                     best_acc = acc
-                early_stop(val_loss, model_cls, save=False, path=
+                early_stop(val_loss, model_cls, save=True, path=
                 f"{self.configs.task}_{self.configs.dataset}_{list2str(self.configs.manifold)}_{exp_iter}.pt")
                 if early_stop.early_stop:
                     break

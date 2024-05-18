@@ -25,13 +25,13 @@ class RiemannianSpikeGNN(nn.Module):
                                       dropout=dropout, use_MS=use_MS)
         self.layers = nn.ModuleList([])
         for i in range(n_layers):
-            self.layers.add_module(f"layer_{i}",
-                                   RiemannianSGNNLayer(manifold, embed_dim, neuron=neuron, delta=delta, tau=tau,
+            self.layers.append(
+                RiemannianSGNNLayer(manifold, embed_dim, neuron=neuron, delta=delta, tau=tau,
                                                        step_size=step_size, v_threshold=v_threshold,
                                                        dropout=dropout, use_MS=use_MS)
                                    )
-        # self.fc = nn.Linear(embed_dim, n_classes, bias=False) if task == "NC" else None
-        self.fc = RiemannianClassifier(manifold, n_classes, embed_dim, device) if task == "NC" else None
+        self.fc = nn.Linear(embed_dim, n_classes, bias=False) if task == "NC" else None
+        # self.fc = RiemannianClassifier(manifold, n_classes, embed_dim, device) if task == "NC" else None
 
     def forward(self, data):
         x = data['features']
@@ -44,10 +44,9 @@ class RiemannianSpikeGNN(nn.Module):
         x, z = self.encoder(x, edge_index)
         for layer in self.layers:
             x, z = layer(x, z, edge_index)
-            z = self.manifold.projx(z)
 
         if self.task == 'NC' and self.self_train is False:
-            # z = self.manifold.proju0(self.manifold.logmap0(z))
+            z = self.manifold.proju0(self.manifold.logmap0(z))
             z = self.fc(z)
             return z
         elif self.task == "LP" and self.self_train is False:
@@ -74,9 +73,9 @@ class RiemannianClassifier(nn.Module):
         self.points = ManifoldParameter(self.manifold.random_normal((num_classes, n_dim), std=1./math.sqrt(n_dim),
                                                                     device=device, dtype=torch.get_default_dtype()),
                                         manifold, requires_grad=True)
-        # self.w = nn.Linear(num_classes, num_classes, bias=False)
 
     def forward(self, x):
+        x = self.manifold.projx(x)
         return -self.manifold.dist(self.manifold.projx(self.points), x.unsqueeze(1))
 
 
@@ -89,11 +88,3 @@ class FermiDiracDecoder(nn.Module):
     def forward(self, dist):
         probs = torch.sigmoid((self.r - dist) / self.t)
         return probs
-
-
-if __name__ == '__main__':
-    from torch_geometric.datasets import Planetoid
-
-    dataset = Planetoid(root='../data', name='Cora')
-    encoder = RiemannianSpikeGNN(Lorentz(), 10, 2, 1433, 32)
-    spike_sequence = encoder(dataset.data.x, dataset.data.edge_index)

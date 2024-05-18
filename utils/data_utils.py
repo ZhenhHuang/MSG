@@ -5,7 +5,7 @@ import networkx as nx
 import numpy as np
 import torch_geometric.data
 from torch_geometric.data import InMemoryDataset
-from torch_geometric.datasets import Planetoid, WikipediaNetwork, Actor, GemsecDeezer, WikiCS, FacebookPagePage, Amazon
+from torch_geometric.datasets import Planetoid, WikipediaNetwork, Actor, GemsecDeezer, WikiCS, FacebookPagePage, Amazon, Coauthor
 from torch_geometric.utils import to_networkx
 from torch_geometric.utils import negative_sampling
 from torch_geometric.transforms import RandomNodeSplit
@@ -74,6 +74,10 @@ def load_data(root: str, data_name: str, split='public', num_val=0.1, num_test=0
     elif data_name == "KarateClub":
         dataset = KarateClub()
         dataset.data = RandomNodeSplit(num_val=0.2, num_test=0.3)(dataset.data[0])
+        train_mask, val_mask, test_mask = dataset.data.train_mask, dataset.data.val_mask, dataset.data.test_mask
+    elif data_name in ["CS", "Physics"]:
+        dataset = Coauthor(root, name=data_name)
+        dataset.data = RandomNodeSplit(num_val=num_val, num_test=num_test)(dataset[0])
         train_mask, val_mask, test_mask = dataset.data.train_mask, dataset.data.val_mask, dataset.data.test_mask
     else:
         raise NotImplementedError
