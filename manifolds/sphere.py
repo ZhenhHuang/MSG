@@ -12,6 +12,7 @@ EPS = {torch.float32: 1e-4, torch.float64: 1e-7}
 class Sphere(geoopt.Sphere):
     def __init__(self):
         super(Sphere, self).__init__()
+        self.k = torch.nn.Parameter(torch.tensor([1.0]), requires_grad=False)
 
     def origin(
         self,
@@ -57,6 +58,17 @@ class Sphere(geoopt.Sphere):
 
     def norm(self, u: torch.Tensor, x: torch.Tensor = None, *, keepdim=False) -> torch.Tensor:
         return torch.norm(u, dim=-1, keepdim=keepdim)
+
+    def random_normal(
+            self, *size, mean=0, std=1, dtype=None, device=None
+    ):
+        tens = (
+                torch.randn(*size, device=device, dtype=dtype)
+                * std
+                + mean
+        )
+        return geoopt.ManifoldTensor(self.expmap0(tens), manifold=self)
+
 
     def jacobian_expmap_v(self, x, v):
         v_norm = torch.norm(v, keepdim=True, dim=-1)  # (N, 1)

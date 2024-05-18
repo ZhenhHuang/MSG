@@ -28,3 +28,11 @@ def save_config(config_dict, save_path: str):
         json.dump(config_dict, f, indent=4)
     f.close()
     return
+
+
+def list2str(l):
+    s = ""
+    for e in l[:-1]:
+        s += f"{e}_"
+    s += f"{l[-1]}"
+    return s

@@ -6,12 +6,13 @@ from modules.layers import RiemannianSGNNLayer, RSEncoderLayer
 from manifolds.lorentz import Lorentz
 from manifolds.euclidean import Euclidean
 from geoopt.tensor import ManifoldParameter
+import math
 
 
 class RiemannianSpikeGNN(nn.Module):
     def __init__(self, manifold, T, n_layers, step_size, in_dim, embed_dim,
                  n_classes, v_threshold=1.0, dropout=0.1, neuron="IF", delta=0.05, tau=2,
-                 self_train=False, task='NC', use_MS=True):
+                 self_train=False, task='NC', use_MS=True, device=None):
         super(RiemannianSpikeGNN, self).__init__()
         if isinstance(manifold, Lorentz):
             embed_dim += 1
@@ -29,8 +30,8 @@ class RiemannianSpikeGNN(nn.Module):
                                                        step_size=step_size, v_threshold=v_threshold,
                                                        dropout=dropout, use_MS=use_MS)
                                    )
-        self.fc = nn.Linear(embed_dim, n_classes, bias=False) if task == "NC" else None
-        # self.fc = RiemannianClassifier(manifold, n_classes, embed_dim) if task == "NC" else None
+        # self.fc = nn.Linear(embed_dim, n_classes, bias=False) if task == "NC" else None
+        self.fc = RiemannianClassifier(manifold, n_classes, embed_dim, device) if task == "NC" else None
 
     def forward(self, data):
         x = data['features']
@@ -43,9 +44,10 @@ class RiemannianSpikeGNN(nn.Module):
         x, z = self.encoder(x, edge_index)
         for layer in self.layers:
             x, z = layer(x, z, edge_index)
+            z = self.manifold.projx(z)
 
         if self.task == 'NC' and self.self_train is False:
-            z = self.manifold.proju0(self.manifold.logmap0(z))
+            # z = self.manifold.proju0(self.manifold.logmap0(z))
             z = self.fc(z)
             return z
         elif self.task == "LP" and self.self_train is False:
@@ -66,17 +68,16 @@ class RiemannianSpikeGNN(nn.Module):
 
 
 class RiemannianClassifier(nn.Module):
-    def __init__(self, manifold, num_classes, n_dim):
+    def __init__(self, manifold, num_classes, n_dim, device):
         super(RiemannianClassifier, self).__init__()
         self.manifold = manifold
-        self.points = ManifoldParameter(torch.randn((1, num_classes, n_dim)), manifold, requires_grad=True)
-        self.points.data = self.manifold.projx(self.points.data)
-        self.w = nn.Linear(num_classes, num_classes, bias=False)
+        self.points = ManifoldParameter(self.manifold.random_normal((num_classes, n_dim), std=1./math.sqrt(n_dim),
+                                                                    device=device, dtype=torch.get_default_dtype()),
+                                        manifold, requires_grad=True)
+        # self.w = nn.Linear(num_classes, num_classes, bias=False)
 
     def forward(self, x):
-        dist = self.manifold.dist(self.points, x.unsqueeze(1))
-        logits = self.w(dist)
-        return logits
+        return -self.manifold.dist(self.manifold.projx(self.points), x.unsqueeze(1))
 
 
 class FermiDiracDecoder(nn.Module):
