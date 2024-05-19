@@ -66,7 +66,8 @@ class Exp:
                                        embed_dim=sum(self.configs.embed_dim), n_classes=data["num_classes"],
                                        step_size=self.configs.step_size, v_threshold=self.configs.v_threshold,
                                        dropout=self.configs.dropout, self_train=self.configs.self_train,
-                                       task=self.configs.task, use_MS=self.configs.use_MS, tau=self.configs.tau).to(device)
+                                       task=self.configs.task, use_MS=self.configs.use_MS, tau=self.configs.tau).to(
+                device)
 
             logger.info("--------------------------Training Start-------------------------")
             if self.configs.self_train:
@@ -74,11 +75,15 @@ class Exp:
                 logger.info(f"energy: {energy}, params: {params}")
                 model = self.pre_train(data, model, logger)
             if self.configs.task == 'NC':
-                # energy, params = calc_params(model, data)
-                # logger.info(f"energy: {energy}, params: {params}")
+                energy, params = calc_params(model, data)
+                statistic_str = f"Energy results for {self.configs}: \n energy: {energy}, params: {params} \n"
+                logger.info(statistic_str)
+                with open("./results/energy.txt", "a") as f:
+                    f.write(statistic_str)
+                f.close()
                 best_val, test_acc, test_weighted_f1, test_macro_f1 = self.train_cls(data, model, logger, exp_iter)
-                # energy, params = calc_params(model, data)
-                # logger.info(f"energy: {energy}, params: {params}")
+                energy, params = calc_params(model, data)
+                logger.info(f"energy: {energy}, params: {params}")
                 logger.info(
                     f"val_accuracy={best_val.item() * 100: .2f}%, test_accuracy={test_acc.item() * 100: .2f}%")
                 logger.info(
@@ -101,14 +106,24 @@ class Exp:
                 raise NotImplementedError
 
         if self.configs.task == "NC":
-            logger.info(f"valid results: {np.mean(vals)}~{np.std(vals)}")
-            logger.info(f"best test ACC: {np.max(accs)}")
-            logger.info(f"test results: {np.mean(accs)}~{np.std(accs)}")
-            logger.info(f"test weighted-f1: {np.mean(wf1s)}~{np.std(wf1s)}")
-            logger.info(f"test macro-f1: {np.mean(mf1s)}~{np.std(mf1s)}")
+            result_str = f"NC results for {self.configs}: \n" + \
+                         f"valid results: {np.mean(vals) * 100: .2f}~{np.std(vals) * 100: .2f} \n" + \
+                         f"best test ACC: {np.max(accs) * 100: .2f}\n" + \
+                         f"test results: {np.mean(accs) * 100: .2f}~{np.std(accs) * 100: .2f}\n" + \
+                         f"test weighted-f1: {np.mean(wf1s) * 100: .2f}~{np.std(wf1s) * 100: .2f}\n" + \
+                         f"test macro-f1: {np.mean(mf1s) * 100: .2f}~{np.std(mf1s) * 100: .2f}\n"
+            logger.info(result_str)
+            with open("./results/NC_results.txt", "a") as f:
+                f.write(result_str)
+            f.close()
         elif self.configs.task == "LP" or self.configs.task == 'Motif':
-            logger.info(f"test AUC: {np.mean(aucs)}~{np.std(aucs)}")
-            logger.info(f"test AP: {np.mean(aps)}~{np.std(aps)}")
+            result_str = f"LP results for {self.configs}: \n" + \
+                         f"test AUC: {np.mean(aucs) * 100: .2f}~{np.std(aucs)* 100: .2f} \n" + \
+                         f"test AP: {np.mean(aps) * 100: .2f}~{np.std(aps) * 100: .2f} \n"
+            logger.info(result_str)
+            with open("./results/LP_results.txt", "a") as f:
+                f.write(result_str)
+            f.close()
 
     def pre_train(self, data, model, logger):
         optimizer = torch.optim.Adam(model.parameters(), lr=self.configs.lr,
@@ -192,7 +207,7 @@ class Exp:
         return best_acc, test_acc, test_weighted_f1, test_macro_f1
 
     def cal_lp_loss(self, embeddings, model, pos_edges, neg_edges):
-        if self.configs.manifold != "lorentz":
+        if not isinstance(model.manifold, Lorentz):
             pos_dists = model.manifold.dist(embeddings[pos_edges[0]], embeddings[pos_edges[1]])
             pos_scores = torch.sigmoid((self.configs.r - pos_dists) / self.configs.t)
             neg_dists = model.manifold.dist(embeddings[neg_edges[0]], embeddings[neg_edges[1]])

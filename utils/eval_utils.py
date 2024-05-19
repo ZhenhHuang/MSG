@@ -36,6 +36,7 @@ def calc_params(model, data):
         s_o, z_o = output
         m.total_params += z_o.shape[-1] * z.shape[-1]
         m.total_ops += s_o.sum().item() * 3.7
+        m.total_ops += z_o.shape[0] * z_o.shape[-1] * 3.7
 
     def count_encoder(m, input, output):
         # your rule here
@@ -44,6 +45,7 @@ def calc_params(model, data):
         m.total_params += z_o.shape[-1] * x.shape[-1]
         m.total_ops += 4.6 * (edge_index.shape[1] / 2 * z_o.shape[-1])
         m.total_ops += 4.6 * s_o.sum().item()
+        m.total_ops += z_o.shape[0] * z_o.shape[-1] * 4.6
 
 
     """
@@ -59,6 +61,8 @@ def calc_params(model, data):
                             )
     params = clever_format([params], "%.4f")
     energy = f"{energy * 1e-9} mJ"
+    model.register_buffer('total_ops', None)
+    model.register_buffer('total_params', None)
     return energy, params
 
 
