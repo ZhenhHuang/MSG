@@ -39,8 +39,8 @@ parser.add_argument('--neuron', type=str, default='IF', choices=['IF', 'LIF'], h
 parser.add_argument('--T', type=int, default=5, help="latency of neuron")
 parser.add_argument('--n_layers', type=int, default=1)
 parser.add_argument('--embed_dim', type=int, nargs='+', default=[32], help='embedding dimension')
-parser.add_argument('--step_size', type=float, default=0.1, help='step size for tangent vector')
-parser.add_argument('--v_threshold', type=float, default=5e-2, help='threshold for neuron')
+parser.add_argument('--step_size', type=float, default=0.01, help='step size for tangent vector')
+parser.add_argument('--v_threshold', type=float, default=1.0, help='threshold for neuron')
 parser.add_argument('--delta', type=float, default=0.05, help='For LIF neuron')
 parser.add_argument('--tau', type=float, default=2.)
 parser.add_argument('--dropout', type=float, default=0.1)
@@ -71,15 +71,19 @@ results_dir = f"./results/logs"
 log_path = f"{results_dir}/{configs.task}_{list2str(configs.manifold)}_{configs.dataset}.log"
 configs.log_path = log_path
 if not os.path.exists(results_dir):
-    os.mkdir(results_dir)
-json_path = f"./configs/{configs.task}/{configs.dataset}/{list2str(configs.manifold)}.json"
-if not os.path.exists(f"./configs/{configs.task}/{configs.dataset}"):
-    os.mkdir(f"./configs/{configs.task}/{configs.dataset}")
+    os.makedirs(results_dir, exist_ok=True)
+json_dir = f"./configs/{configs.task}/{configs.dataset}"
+json_path = f"{json_dir}/{list2str(configs.manifold)}.json"
+if not os.path.exists(json_dir):
+    os.makedirs(json_dir, exist_ok=True)
+times_dir = f"./results/times"
+if not os.path.exists(times_dir):
+    os.makedirs(times_dir, exist_ok=True)
 
 # print(f"Saving config file: {json_path}")
 # save_config(vars(configs), json_path)
-print(f"Loading config file: {json_path}")
-configs = load_config(vars(configs), json_path)
+# print(f"Loading config file: {json_path}")
+# configs = load_config(vars(configs), json_path)
 
 print(f"Log path: {configs.log_path}")
 logger = create_logger(configs.log_path)

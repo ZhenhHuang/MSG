@@ -187,7 +187,7 @@ class Exp:
                 logger.info(f"Epoch {epoch}: val_loss={val_loss.item()}, val_accuracy={acc}")
                 if acc > best_acc:
                     best_acc = acc
-                early_stop(val_loss, model_cls, save=True, path=
+                early_stop(val_loss, model_cls, save=False, path=
                 f"{self.configs.task}_{self.configs.dataset}_{list2str(self.configs.manifold)}_{exp_iter}.pt")
                 if early_stop.early_stop:
                     break

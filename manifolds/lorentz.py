@@ -1,7 +1,7 @@
 import geoopt
 import torch
 import geoopt.manifolds.lorentz.math as lmath
-from utils.math_utils import sinh_div, cosh_div_square, sinh_div_cube, arcosh, cosh
+from utils.math_utils import sinh_div, cosh_div_square, sinh_div_cube, arcosh, cosh, sinh
 
 
 EPS = {torch.float32: 1e-4, torch.float64: 1e-7}
@@ -15,6 +15,12 @@ class Lorentz(geoopt.Lorentz):
         x = x.clone()
         x.narrow(-1, 0, 1).mul_(-1)
         return x @ y.transpose(-1, -2)
+
+    def geodesic(self, t, x, y):
+        k_sqrt = torch.sqrt(self.k)
+        nomin = arcosh(-self.inner(None, x / k_sqrt, y / k_sqrt))
+        v = self.logmap(x, y)
+        return cosh(nomin * t) * x + k_sqrt * sinh(nomin * t) * v / self.norm(v, keepdim=True)
 
     def expmap(
         self, x: torch.Tensor, u: torch.Tensor, *, norm_tan=False, project=False, dim=-1
