@@ -1,10 +1,7 @@
 import torch
 import torch.nn as nn
-from modules.spike_encoder import GNNSpikeEncoder, PoissonSpikeEncoder
-from spikingjelly.clock_driven.neuron import MultiStepLIFNode
 from modules.layers import RiemannianSGNNLayer, RSEncoderLayer
 from manifolds.lorentz import Lorentz
-from manifolds.euclidean import Euclidean
 from geoopt.tensor import ManifoldParameter
 import math
 

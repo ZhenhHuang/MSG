@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn import GCNConv, GATConv, SAGEConv
+from torch_geometric.nn import GCNConv
 from torch_geometric.utils import dropout_edge
 from modules.neuron import RiemannianNeuron, Neuron
 
