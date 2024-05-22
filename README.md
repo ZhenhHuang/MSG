@@ -3,7 +3,7 @@
 ## Get Started
 
 ```shell
-python main.py --task NC --dataset CS --root_path your_path
+python main.py --task NC --dataset Physics --root_path your_path
 ```
 
 ## Visualization
