@@ -166,3 +166,4 @@ results/
 configs/
 *.pdf
 checkpoints/
+*.ipynb
