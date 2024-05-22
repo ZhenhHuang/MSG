@@ -78,8 +78,12 @@ if not os.path.exists(times_dir):
 
 # print(f"Saving config file: {json_path}")
 # save_config(vars(configs), json_path)
-# print(f"Loading config file: {json_path}")
-# configs = load_config(vars(configs), json_path)
+if os.path.exists(json_path):
+    print(f"Loading config file: {json_path}")
+    configs = load_config(vars(configs), json_path)
+else:
+    print(f"Saving config file: {json_path}")
+    save_config(vars(configs), json_path)
 
 print(f"Log path: {configs.log_path}")
 logger = create_logger(configs.log_path)
