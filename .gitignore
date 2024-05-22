@@ -166,4 +166,3 @@ results/
 configs/
 *.pdf
 checkpoints/
-*.png
