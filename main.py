@@ -14,7 +14,7 @@ random.seed(seed)
 torch.manual_seed(seed)
 np.random.seed(seed)
 
-parser = argparse.ArgumentParser(description='Metric Learning of Spiking GNN')
+parser = argparse.ArgumentParser(description='Spiking Graph Neural Networks on Riemannian Manifold')
 
 # Experiment settings
 parser.add_argument('--task', type=str, default='NC',
