@@ -41,7 +41,7 @@ def calc_params(model, data):
     def count_encoder(m, input, output):
         # your rule here
         x, edge_index = input
-        s_o, z_o = output
+        s_o, z_o, _ = output
         m.total_params += z_o.shape[-1] * x.shape[-1]
         m.total_ops += 4.6 * (edge_index.shape[1] / 2 * z_o.shape[-1])
         m.total_ops += 4.6 * s_o.sum().item()

@@ -34,7 +34,7 @@ class RSEncoderLayer(nn.Module):
         z = self.manifold.origin(x.shape, device=x.device, dtype=x.dtype)
         x_seq = x.unsqueeze(0).repeat(self.T, 1, 1)
         o_seq, z_seq = self.neuron(x_seq, x * self.step_size, z)
-        return o_seq, z_seq
+        return o_seq, z_seq, x * self.step_size
 
 
 class RiemannianSGNNLayer(nn.Module):
@@ -62,4 +62,4 @@ class RiemannianSGNNLayer(nn.Module):
         y_seq = x_seq.mean(0) * self.step_size
         o_seq, z_seq = self.neuron(x_seq, y_seq, z_seq)
         # print(x_seq.max(), self.manifold.norm(y_seq).abs().max(), z_seq.max())
-        return o_seq, z_seq
+        return o_seq, z_seq, y_seq
