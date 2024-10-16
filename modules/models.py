@@ -36,29 +36,18 @@ class RiemannianSpikeGNN(nn.Module):
             edge_index = data['pos_edges_train']
         else:
             raise NotImplementedError
-        x, z = self.encoder(x, edge_index)
+        x, z, y = self.encoder(x, edge_index)
+        v = y.clone()
         for layer in self.layers:
-            x, z = layer(x, z, edge_index)
+            x, z, y = layer(x, z, edge_index)
+            v += y
 
         if self.task == 'NC':
-            z = self.manifold.proju0(self.manifold.logmap0(z))
-            z = self.fc(z)
-            return z
-        elif self.task == "LP" and self.self_train is False:
-            return z
-
-
-class RiemannianClassifier(nn.Module):
-    def __init__(self, manifold, num_classes, n_dim, device):
-        super(RiemannianClassifier, self).__init__()
-        self.manifold = manifold
-        self.points = ManifoldParameter(self.manifold.random_normal((num_classes, n_dim), std=1./math.sqrt(n_dim),
-                                                                    device=device, dtype=torch.get_default_dtype()),
-                                        manifold, requires_grad=True)
-
-    def forward(self, x):
-        x = self.manifold.projx(x)
-        return -self.manifold.dist(self.manifold.projx(self.points), x.unsqueeze(1))
+            z1 = self.manifold.proju0(self.manifold.logmap0(z))
+            z1 = self.fc(z1)
+            return z1, self.fc(self.manifold.proju0(v))
+        elif self.task == "LP":
+            return self.manifold.proju0(self.manifold.logmap0(z)), self.manifold.proju0(v)
 
 
 class FermiDiracDecoder(nn.Module):

@@ -1,0 +1,43 @@
+{
+    "task": "NC",
+    "dataset": "CS",
+    "root_path": "./datasets",
+    "eval_freq": 10,
+    "exp_iters": 5,
+    "log_path": "./results//NC_lorentz_CS.log",
+    "self_train": false,
+    "epochs": 50,
+    "lr": 0.01,
+    "w_decay": 0.0,
+    "use_MS": true,
+    "use_product": false,
+    "manifold": [
+        "lorentz"
+    ],
+    "neuron": "IF",
+    "T": 5,
+    "n_layers": 1,
+    "embed_dim": [
+        32
+    ],
+    "step_size": 0.01,
+    "v_threshold": 1.0,
+    "delta": 0.05,
+    "tau": 2.0,
+    "dropout": 0.3,
+    "margin": 1.0,
+    "lr_cls": 0.01,
+    "w_decay_cls": 0,
+    "epochs_cls": 200,
+    "patience_cls": 3,
+    "lr_lp": 0.005,
+    "w_decay_lp": 0.0001,
+    "epochs_lp": 200,
+    "patience_lp": 3,
+    "t": 1.0,
+    "r": 2.0,
+    "temperature": 0.2,
+    "use_gpu": true,
+    "gpu": 0,
+    "devices": "0,1"
+}

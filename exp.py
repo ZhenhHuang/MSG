@@ -117,10 +117,12 @@ class Exp:
             f.close()
 
     def cal_cls_loss(self, model, data, mask):
-        out = model(data)[mask]
+        out, infer = model(data)
+        out = out[mask]
+        infer = infer[mask]
         loss = F.cross_entropy(out, data["labels"][mask])
-        acc = cal_accuracy(out, data["labels"][mask])
-        weighted_f1, macro_f1 = cal_F1(out.detach().cpu(), data["labels"][mask].detach().cpu())
+        acc = cal_accuracy(infer, data["labels"][mask])
+        weighted_f1, macro_f1 = cal_F1(infer.detach().cpu(), data["labels"][mask].detach().cpu())
         return loss, acc, weighted_f1, macro_f1
 
     def train_cls(self, data, model_cls, logger, exp_iter: int):
@@ -172,7 +174,7 @@ class Exp:
         test_loss, test_acc, test_weighted_f1, test_macro_f1 = self.cal_cls_loss(model_cls, data, data['test_mask'])
         return best_acc, test_acc, test_weighted_f1, test_macro_f1
 
-    def cal_lp_loss(self, embeddings, model, pos_edges, neg_edges):
+    def cal_lp_loss(self, embeddings, infer, model, pos_edges, neg_edges):
         if not isinstance(model.manifold, Lorentz):
             pos_dists = model.manifold.dist(embeddings[pos_edges[0]], embeddings[pos_edges[1]])
             pos_scores = torch.sigmoid((self.configs.r - pos_dists) / self.configs.t)
@@ -181,11 +183,13 @@ class Exp:
             loss = F.binary_cross_entropy(pos_scores.clip(0.01, 0.99), torch.ones_like(pos_scores)) + \
                    F.binary_cross_entropy(neg_scores.clip(0.01, 0.99), torch.zeros_like(neg_scores))
         else:
-            pos_scores = model.manifold.inner(None, embeddings[pos_edges[0]], embeddings[pos_edges[1]])
-            neg_scores = model.manifold.inner(None, embeddings[neg_edges[0]], embeddings[neg_edges[1]])
+            pos_scores = torch.cosine_similarity(embeddings[pos_edges[0]], embeddings[pos_edges[1]], -1)
+            neg_scores = torch.cosine_similarity(embeddings[neg_edges[0]], embeddings[neg_edges[1]], -1)
             loss = F.binary_cross_entropy_with_logits(pos_scores, torch.ones_like(pos_scores)) + \
                    F.binary_cross_entropy_with_logits(neg_scores, torch.zeros_like(neg_scores))
         label = [1] * pos_scores.shape[0] + [0] * neg_scores.shape[0]
+        pos_scores = torch.cosine_similarity(infer[pos_edges[0]], infer[pos_edges[1]], -1)
+        neg_scores = torch.cosine_similarity(infer[neg_edges[0]], infer[neg_edges[1]], -1)
         preds = list(pos_scores.detach().cpu().numpy()) + list(neg_scores.detach().cpu().numpy())
         auc, ap = cal_AUC_AP(preds, label)
         return loss, auc, ap
@@ -193,7 +197,6 @@ class Exp:
     def train_lp(self, data, model, logger, exp_iter: int):
         optimizer_lp = torch.optim.Adam(model.parameters(), lr=self.configs.lr_lp,
                                         weight_decay=self.configs.w_decay_lp)
-        # decoder = FermiDiracDecoder(self.configs.r, self.configs.t).to(self.device)
         best_ap = 0
         early_stop = EarlyStopping(self.configs.patience_cls)
         time_before_train = time.time()

@@ -163,7 +163,5 @@ checkpoints/
 results/
 *.pt
 *.txt
-configs/
 *.pdf
-checkpoints/
 *.ipynb
