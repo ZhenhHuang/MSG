@@ -17,6 +17,18 @@ If you want to use vallina SNN neurons, you can add ```--use_MS```.
 If you need to use product space of manifolds, you can add ```--use_product```.
 
 All the configuration of models can be load from Json file in ```./configs```.
+
+## Model Architecture
+
+<div align=center>
+<img src="./pics/Torus.png" width=60% alt="./pics/Torus.png" title="Sphere" >
+</div>
+
+## Results
+<div align=center>
+<img src="./pics/results.png" width=100% alt="./pics/Torus.png" title="Sphere" >
+</div>
+
 ## Visualization
 <div align=center>
 <img src="./pics/Torus.png" width=60% alt="./pics/Torus.png" title="Sphere" >
