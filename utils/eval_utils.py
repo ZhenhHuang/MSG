@@ -33,7 +33,7 @@ def calc_params(model, data):
     def count_layer(m, input, output):
         # your rule here
         s, z, edge_index = input
-        s_o, z_o_,  = output
+        s_o, z_o, _ = output
         m.total_params += z_o.shape[-1] * z.shape[-1]
         m.total_ops += s_o.sum().item() * 3.7
         m.total_ops += z_o.shape[0] * z_o.shape[-1] * 3.7
