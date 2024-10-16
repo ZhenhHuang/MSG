@@ -1,11 +1,22 @@
-# Spiking Graph Neural Networks on Riemannian Manifolds
+# [NeurIPS 2024] Spiking Graph Neural Networks on Riemannian Manifolds
 
 ## Get Started
 
+Install Python packages.
 ```shell
-python main.py --task NC --dataset Physics --root_path your_path
+pip install -r requirements.txt
+```
+Then you can run the command to train the model.
+```shell
+python main.py --task NC --dataset Physics --root_path ${your_path}
 ```
 
+please replace ```${your_path}``` with your dataset file path.
+If you want to use vallina SNN neurons, you can add ```--use_MS```. 
+
+If you need to use product space of manifolds, you can add ```--use_product```.
+
+All the configuration of models can be load from Json file in ```./configs```.
 ## Visualization
 <div align=center>
 <img src="./pics/Torus.png" width=60% alt="./pics/Torus.png" title="Sphere" >
