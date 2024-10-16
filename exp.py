@@ -204,10 +204,10 @@ class Exp:
             t = time.time()
             model.train()
             optimizer_lp.zero_grad()
-            embeddings = model(data)
+            embeddings, infer = model(data)
             neg_edge_train = data["neg_edges_train"][:,
                              np.random.randint(0, data["neg_edges_train"].shape[1], data["pos_edges_train"].shape[1])]
-            loss, auc, ap = self.cal_lp_loss(embeddings, model, data["pos_edges_train"], neg_edge_train)
+            loss, auc, ap = self.cal_lp_loss(embeddings, infer, model, data["pos_edges_train"], neg_edge_train)
             loss.backward()
             optimizer_lp.step()
             logger.info(
@@ -216,7 +216,7 @@ class Exp:
                 reset_net(model)
             if epoch % self.configs.eval_freq == 0:
                 model.eval()
-                val_loss, auc, ap = self.cal_lp_loss(embeddings, model, data["pos_edges_val"], data["neg_edges_val"])
+                val_loss, auc, ap = self.cal_lp_loss(embeddings, infer, model, data["pos_edges_val"], data["neg_edges_val"])
                 logger.info(f"Epoch {epoch}: val_loss={val_loss.item()}, val_AUC={auc}, val_AP={ap}")
                 if ap > best_ap:
                     best_ap = ap
@@ -231,6 +231,6 @@ class Exp:
         with open('time.txt', 'a') as f:
             f.write(time_str)
         f.close()
-        test_loss, test_auc, test_ap = self.cal_lp_loss(embeddings, model, data["pos_edges_test"],
+        test_loss, test_auc, test_ap = self.cal_lp_loss(embeddings, infer, model, data["pos_edges_test"],
                                                         data["neg_edges_test"])
         return test_loss, test_auc, test_ap
