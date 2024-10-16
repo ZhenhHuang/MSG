@@ -21,12 +21,16 @@ All the configuration of models can be load from Json file in ```./configs```.
 ## Model Architecture
 
 <div align=center>
-<img src="./pics/Torus.png" width=60% alt="./pics/Torus.png" title="Sphere" >
+<img src="./pics/model_1.png" width=100% alt="./pics/model_1.png" title="MSG" >
+</div>
+
+<div align=center>
+<img src="./pics/model_2.png" width=80% alt="./pics/model_2.png" title="Manifold Spiking Layer" >
 </div>
 
 ## Results
 <div align=center>
-<img src="./pics/results.png" width=100% alt="./pics/Torus.png" title="Sphere" >
+<img src="./pics/results.png" width=100% alt="./pics/results.png" title="Sphere" >
 </div>
 
 ## Visualization
