@@ -1,0 +1,9 @@
+geoopt==0.5.0
+matplotlib==3.8.2
+networkx==3.0
+numpy==1.24.2
+scikit_learn==1.5.2
+spikingjelly==0.0.0.0.14
+thop==0.1.1.post2209072238
+torch==2.0.1+cu117
+torch_geometric==2.6.1
