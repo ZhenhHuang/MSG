@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from geoopt.optim import RiemannianAdam
 from manifolds import Lorentz, Sphere, Euclidean, ProductSpace
-from modules.models import FermiDiracDecoder, RiemannianSpikeGNN
+from modules.models import RiemannianSpikeGNN
 from spikingjelly.clock_driven.functional import reset_net
 from utils.eval_utils import cal_accuracy, cal_F1, cal_AUC_AP, calc_params, OutputExtractor
 from utils.data_utils import load_data, mask_edges

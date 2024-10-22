@@ -49,13 +49,20 @@ class RiemannianSpikeGNN(nn.Module):
         elif self.task == "LP":
             return self.manifold.proju0(self.manifold.logmap0(z)), self.manifold.proju0(v)
 
-
-class FermiDiracDecoder(nn.Module):
-    def __init__(self, r, t):
-        super(FermiDiracDecoder, self).__init__()
-        self.r = r
-        self.t = t
-
-    def forward(self, dist):
-        probs = torch.sigmoid((self.r - dist) / self.t)
-        return probs
+    def infer(self, data):
+        x = data['features']
+        if self.task == 'NC':
+            edge_index = data['edge_index']
+        elif self.task == 'LP':
+            edge_index = data['pos_edges_train']
+        else:
+            raise NotImplementedError
+        x, y = self.encoder.infer(x, edge_index)
+        v = y.clone()
+        for layer in self.layers:
+            x, y = layer.infer(x, edge_index)
+            v += y
+        if self.task == 'NC':
+            return self.fc(self.manifold.proju0(v))
+        elif self.task == "LP":
+            return self.manifold.proju0(v)

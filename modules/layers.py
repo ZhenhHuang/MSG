@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch_geometric.nn import GCNConv
 from torch_geometric.utils import dropout_edge
 from modules.neuron import RiemannianNeuron, Neuron
+from spikingjelly.clock_driven.neuron import MultiStepIFNode, MultiStepLIFNode
 
 
 class DropEdge(nn.Module):
@@ -27,6 +28,10 @@ class RSEncoderLayer(nn.Module):
         self.neuron = RiemannianNeuron[neuron](manifold, v_threshold, delta, tau) if use_MS \
             else Neuron[neuron](manifold, v_threshold, delta, tau)
         self.step_size = step_size
+        if neuron == 'IF':
+            self.register_module("infer_neuron", MultiStepIFNode(v_threshold=v_threshold, detach_reset=True))
+        else:
+            self.register_module("infer_neuron", MultiStepLIFNode(v_threshold=v_threshold, detach_reset=True, tau=tau))
 
     def forward(self, x, edge_index):
         edge_index = self.drop_edge(edge_index)
@@ -35,6 +40,13 @@ class RSEncoderLayer(nn.Module):
         x_seq = x.unsqueeze(0).repeat(self.T, 1, 1)
         o_seq, z_seq = self.neuron(x_seq, x * self.step_size, z)
         return o_seq, z_seq, x * self.step_size
+
+    def infer(self, x, edge_index):
+        edge_index = self.drop_edge(edge_index)
+        x = self.drop(self.fc(x, edge_index))
+        x_seq = x.unsqueeze(0).repeat(self.T, 1, 1)
+        o_seq = self.infer_neuron(x_seq)
+        return o_seq, x * self.step_size
 
 
 class RiemannianSGNNLayer(nn.Module):
@@ -48,11 +60,16 @@ class RiemannianSGNNLayer(nn.Module):
         self.drop = nn.Dropout(dropout)
         self.drop_edge = DropEdge(dropout)
         self.step_size = step_size
+        if neuron == 'IF':
+            self.register_module("infer_neuron", MultiStepIFNode(v_threshold=v_threshold, detach_reset=True))
+        else:
+            self.register_module("infer_neuron", MultiStepLIFNode(v_threshold=v_threshold, detach_reset=True, tau=tau))
 
     def forward(self, s_seq, z_seq, edge_index):
         """
 
         :param s_seq: [T, N, D]
+        :param z_seq: [N, D]
         :param edge_index: [E, ]
         :return:
         """
@@ -63,3 +80,10 @@ class RiemannianSGNNLayer(nn.Module):
         o_seq, z_seq = self.neuron(x_seq, y_seq, z_seq)
         # print(x_seq.max(), self.manifold.norm(y_seq).abs().max(), z_seq.max())
         return o_seq, z_seq, y_seq
+
+    def infer(self, s_seq, edge_index):
+        edge_index = self.drop_edge(edge_index)
+        x_seq = self.drop(self.layer(s_seq, edge_index))
+        y_seq = x_seq.mean(0) * self.step_size
+        o_seq = self.infer_neuron(x_seq)
+        return o_seq, y_seq

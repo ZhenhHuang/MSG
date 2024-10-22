@@ -106,8 +106,7 @@ class RiemannianLIFNode(nn.Module):
 
 
 RiemannianNeuron = {"IF": RiemannianIFNode,
-          "LIF": RiemannianLIFNode}
-
+                    "LIF": RiemannianLIFNode}
 
 from spikingjelly.clock_driven.neuron import MultiStepIFNode, MultiStepLIFNode
 
